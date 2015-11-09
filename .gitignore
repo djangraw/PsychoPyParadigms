@@ -1,0 +1,8 @@
+# Compiled files
+*.pyc
+
+# Experimental log files:
+*.log
+
+# Parameter files
+*.pickle
