@@ -1,0 +1,68 @@
+# Discontinuity of mind
+?I had busy thoughts.
+?I had rapidly switching thoughts.
+?I had difficulty holding on to my thoughts.
+# Theory of Mind
+?I thought about others.
+?I placed myself in other peoples shoes.
+?I thought about people I like.
+# Self
+?I thought about my feelings.
+?I thought about my behavior.
+?I thought about myself.
+# Planning
+?I thought about things I need to do.
+?I thought about solving problems.
+?I thought about the future.
+# Sleepiness
+?I felt tired.
+?I felt sleepy.
+?I had difficulty staying awake.
+# Comfort
+?I felt comfortable.
+?I felt relaxed.
+?I felt happy.
+# Somatic Awareness
+?I was conscious of my body.
+?I thought about my breathing.
+?I thought about my heartbeat.
+# Health Concern
+?I felt ill.
+?I thought about my health.
+?I felt pain.
+# Visual Thought
+?I pictured events.
+?I thought in images.
+?I pictured places.
+# Verbal Thought
+?I had silent conversations.
+?I thought in words.
+?I imagined talking to myself.
+# Non-factor Item
+?I felt restless.
+?I enjoyed the session.
+?I had negative feelings.
+?I felt bored.
+?I felt nothing.
+?I felt about the same throughout the session.
+?I thought about my work/study.
+?I had thoughts that I would not readily share with others.
+?I had similar thoughts throughout the session.
+?I thought about pleasant things.
+?I had my thoughts under control.
+?I thought about the aim of the experiment.
+?I had superficial thoughts.
+?I thought about the past.
+?I thought about the present.
+?I had deep thoughts.
+?I thought about nothing.
+?I thought about the sounds around me.
+?I thought about the odors around me.
+# Extra
+?In my thoughts I heard music.
+# Validation
+?I had difficulty remembering my thoughts.
+?I had difficulty remembering my feelings.
+?I felt motivated to participate.
+?I had my eyes closed.
+?I was able to rate the statements.

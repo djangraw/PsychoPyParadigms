@@ -1,0 +1,8 @@
+# First time only?
++This experiment is about thoughts and feelings that you may experience during rest. You will be asked to relax with your eyes closed for 5 minutes, move as little as possible and try not to fall asleep. 
+-Press any key to continue.
++When the time is up, you will be presented with statements on the computer about thoughts and feelings that you may have experienced. Your task is then to indicate the extent to which you agree with the given statements on a scale from "Strongly disagree" to "Strongly agree". If you have any questions about the experiment, please ask them now.
+-Press any key to continue.
+# Show every time
++The following session lasts 5 minutes. It is important that you relax, keep your eyes closed, move as little as possible and try not to fall asleep.
+-WHEN YOU’RE READY TO BEGIN, press any key.
