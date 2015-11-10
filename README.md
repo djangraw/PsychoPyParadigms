@@ -1,12 +1,14 @@
 # PsychoPyParadigms
 
-Experimental paradigms run with PsychoPy that I’ve accumulated over the past year, including EyeLink and SMI eye tracker interfaces. 
+Experimental paradigms run with PsychoPy that I’ve accumulated over the past year, including EyeLink and SMI eye tracker interfaces. EyeLink requires the Pylink toolbox, and SMI requires the serial toolbox. The GazeVis toolbox (https://github.com/djangraw/GazeVisToolbox) has MATLAB functions to import and analyze the resulting log files from PsychoPy and both eye tracker systems.
 
-SampleExperiment represents my current estimate of best practices in logging and timing.
+*SampleExperiment* represents my current estimate of best practices in logging and timing.
 
-GeneralTools and EyeTrackerTools should be added to PsychoPy's path in Preferences --> General --> paths.
+The *GeneralTools* and *EyeTrackerTools* folders should be added to PsychoPy's path in Preferences --> General --> paths.
 
-The BasicExperiments folder contains several earlier paradigms that I played with before settling on the reading paradigm. They are not as polished, but could serve as a starting point for those wishing to implement things like them. They are:
+The tasks in the *Reading* folder use the eye tracker interfaces. _eyelink uses the EyeLink tracker, serial uses the SMI tracker. _practice is behavior only, and _questions includes the questions shown afterwards. These require image files of text as input, which can be generated using the [GazeVis toolbox](https://github.com/djangraw/GazeVisToolbox). The results of these experiments can be imported and analyzed in MATLAB using this toolbox.
+
+The *BasicExperiments* folder contains several earlier paradigms that I played with before settling on the reading paradigm. They are not as polished, but could serve as a starting point for those wishing to implement things like them. They are:
 
 * AudioInterspersedQuestions: play sound file and periodically stop to ask questions.
 * AudtitorySartTask: Implement an audio version of the SART (sustained attention response task) described in Seli 2011 (doi:10.1037/a0025111)
