@@ -1,4 +1,17 @@
 #!/usr/bin/env python2
+"""Display multi-page text with a quiz at the end."""
+# TappingWithTrTiming_d1.py
+# Created 11/09/15 by DJ based on DistractionTask_practice_d3.py
+
+from psychopy import core, gui, data, event, sound, logging 
+# from psychopy import visual # visual causes a bug in the guis, so it's declared after all GUIs run.
+from psychopy.tools.filetools import fromFile, toFile # saving and loading parameter files
+import time as ts, numpy as np # for timing and array operations
+import AppKit, os, glob # for monitor size detection, files
+import BasicPromptTools # for loading/presenting prompts and questions
+import random # for randomization of trials
+
+# ====================== ##!/usr/bin/env python2
 """Display images from a specified folder and present them to the subject."""
 # SampleExperiment_d1.py
 # Created 11/09/15 by DJ based on DistractionTask_practice_d3.py
@@ -17,28 +30,28 @@ import random # for randomization of trials
 # ====================== #
 # Save the parameters declared below?
 saveParams = True;
-newParamsFilename = 'SampleExperimentParams.pickle'
+newParamsFilename = 'TappingParams.pickle'
 
 # Declare primary task parameters.
 params = {
 # Declare stimulus and response parameters
-    'nTrials': 3,            # number of trials in this session
-    'stimDur': 1,             # time when stimulus is presented (in seconds)
-    'ISI': 2,                 # time between when one stimulus disappears and the next appears (in seconds)
-    'tStartup': 2,            # pause time before starting first stimulus
+    'nBlocks': 3,            # number of trials in this session
+    'stimDur': [0.1, 0.1, 0.1],             # time when stimulus is presented (in seconds) for each block
+    'ISI': [0.5, 1.0, 2.0],                 # time between when one stimulus disappears and the next appears (in seconds) for each block
+    'blockDur_TRs': 3,            # duration of each tapping block (in TRs)
+    'restDur_TRs': 3,             # duration of each rest block (in TRs)
+    'tStartup_TRs': 0,            # pause time before starting first stimulus (in TRs)
     'triggerKey': 't',        # key from scanner that says scan is starting
-    'respKeys': ['r','b','y','g'],           # keys to be used for responses (mapped to 1,2,3,4)
-    'respAdvances': True,     # will a response end the stimulus?
-    'imageDir': 'Faces/',    # directory containing image stimluli
-    'imageSuffix': '.jpg',   # images will be selected randomly (without replacement) from all files in imageDir that end in imageSuffix.
+    'dotSize': 100,              # size of dot in pixels
+    'dotPos': [0,0],            # (x,y) position of dot in pixels
 # declare prompt and question files
     'skipPrompts': False,     # go right to the scanner-wait page
     'promptDir': 'Text/',  # directory containing prompts and questions files
-    'promptFile': 'SamplePrompts.txt', # Name of text file containing prompts 
+    'promptFile': 'TappingPrompts.txt', # Name of text file containing prompts 
 # declare display parameters
     'fullScreen': True,       # run in full screen mode?
     'screenToShow': 1,        # display on primary screen (0) or secondary (1)?
-    'fixCrossSize': 10,       # size of cross, in pixels
+    'fixCrossSize': 100,       # size of cross, in pixels
     'fixCrossPos': [0,0],     # (x,y) pos of fixation cross displayed before each stimulus (for gaze drift correction)
     'screenColor':(128,128,128) # in rgb255 space: (r,g,b) all between 0 and 255
 }
@@ -152,18 +165,8 @@ fixation = visual.ShapeStim(win,lineColor='#000000',lineWidth=3.0,vertices=((fCP
 message1 = visual.TextStim(win, pos=[0,+.5], wrapWidth=1.5, color='#000000', alignHoriz='center', name='topMsg', text="aaa",units='norm')
 message2 = visual.TextStim(win, pos=[0,-.5], wrapWidth=1.5, color='#000000', alignHoriz='center', name='bottomMsg', text="bbb",units='norm')
 
-# get stimulus files
-allImages = glob.glob(params['imageDir']+"*"+params['imageSuffix']) # get all files in <imageDir> that end in .<imageSuffix>.
-print('%d images loaded from %s'%(len(allImages),params['imageDir']))
-# make sure there are enough images
-if len(allImages)<params['nTrials']:
-    raise ValueError("# images found in '%s' (%d) is less than # trials (%d)!"%(params['imageDir'],len(allImages),params['nTrials']))
-# randomize order
-random.shuffle(allImages) 
-
-# initialize main image stimulus
-imageName = allImages[0] # initialize with first image
-stimImage = visual.ImageStim(win, pos=[0,0], name='ImageStimulus',image=imageName, units='pix')
+# initialize main dot stimulus
+stimDot = visual.GratingStim(win, color='black', tex=None, mask='circle',pos=params['dotPos'],size=params['dotSize'],units='pix')
 
 # read questions and answers from text files
 [topPrompts,bottomPrompts] = BasicPromptTools.ParsePromptFile(params['promptDir']+params['promptFile'])
@@ -181,51 +184,81 @@ def AddToFlipTime(tIncrement=1.0):
 def SetFlipTimeToNow():
     tNextFlip[0] = globalClock.getTime()
 
-def ShowImage(imageName, stimDur=float('Inf')):
-    # display info to experimenter
-    print('Showing Stimulus %s'%imageName) 
-    
-    # Draw image
-    stimImage.setImage(imageName)
-    stimImage.draw()
-    # Wait until it's time to display
-    while (globalClock.getTime()<tNextFlip[0]):
-        pass
-    # log & flip window to display image
-    win.logOnFlip(level=logging.EXP, msg='Display %s'%imageName)
-    win.flip()
-    tStimStart = globalClock.getTime() # record time when window flipped
-    # set up next win flip time after this one
-    AddToFlipTime(stimDur) # add to tNextFlip[0]
-    
-    # Flush the key buffer and mouse movements
-    event.clearEvents()
-    # Wait for relevant key press or 'stimDur' seconds
-    respKey = None
-    while (globalClock.getTime()<tNextFlip[0]): # until it's time for the next frame
-        # get new keys
-        newKeys = event.getKeys(keyList=params['respKeys']+['q','escape'],timeStamped=globalClock)
-        # check each keypress for escape or response keys
-        if len(newKeys)>0:
-            for thisKey in newKeys: 
-                if thisKey[0] in ['q','escape']: # escape keys
-                    CoolDown() # exit gracefully
-                elif thisKey[0] in params['respKeys'] and respKey == None: # only take first keypress
-                    respKey = thisKey # record keypress
-                    if params['respAdvances']: # if response should advance to next stimulus
-                        SetFlipTimeToNow() # reset flip time
-    
-    # Get stimulus time
-    tStim = globalClock.getTime()-tStimStart
-    print('Stim %s: %.3f seconds'%(imageName,tStim))
-    
-    # Display the fixation cross
-    if params['ISI']>0:# if there should be a fixation cross
-        fixation.draw() # draw it
-        win.logOnFlip(level=logging.EXP, msg='Display Fixation')
+def CheckForTriggers():
+    # get new keys
+    newKeys = event.getKeys(keyList=[params['triggerKey'], 'q','escape'],timeStamped=globalClock)
+    # check each keypress for escape or trigger keys
+    nTriggers = 0
+    if len(newKeys)>0:
+        for thisKey in newKeys: 
+            if thisKey[0] in ['q','escape']: # escape keys
+                CoolDown() # exit gracefully
+            elif thisKey[0] == params['triggerKey']:
+                nTriggers = nTriggers + 1
+                
+    return nTriggers
+
+def FlashDot(stimDur, ISI, blockDur_TRs):
+    # Wait for escape key press or 'blockDur_TRs' triggers
+    nTriggers = 0
+    SetFlipTimeToNow()
+    tBlockStart = globalClock.getTime() # record time when window flipped
+    while (nTriggers < blockDur_TRs): # until it's time for the next frame
+        # ---tapping dot
+        # prepare stim
+        stimDot.draw()
+        win.logOnFlip(level=logging.EXP, msg='Display dot')
+        # Wait until it's time to display
+        while (globalClock.getTime()<tNextFlip[0]):
+            # Check for triggers and increment trigger count
+            nNew = CheckForTriggers()
+            nTriggers = nTriggers + nNew
+            # check for final trigger
+            if nTriggers >= blockDur_TRs:
+                break
+        # check for final trigger
+        if nTriggers >= blockDur_TRs:
+            break
+        # log & flip window to display dot
         win.flip()
+        AddToFlipTime(stimDur) # add to tNextFlip[0]
         
-    return (respKey, tStimStart)
+        # ---Fixation
+        # prepare stim
+        win.logOnFlip(level=logging.EXP, msg='Display fixation')
+        # Wait until it's time to display
+        while (globalClock.getTime()<tNextFlip[0]):
+            # Check for triggers and increment trigger count
+            nNew = CheckForTriggers()
+            nTriggers = nTriggers + nNew
+            # check for final trigger
+            if nTriggers >= blockDur_TRs:
+                break
+        # check for final trigger
+        if nTriggers >= blockDur_TRs:
+            break
+        # log & flip window to display image
+        win.flip()
+        AddToFlipTime(ISI) # add to tNextFlip[0]
+        
+    # Get block time
+    tBlock = globalClock.getTime()-tBlockStart
+    print('Block time: %.3f seconds'%(tBlock))
+    
+    
+    return (tBlock)
+
+# Pause until a given number of TRs is received.
+def WaitForTrs(tWait_TRs):
+    # do IBI
+    nTriggers = 0
+    while (nTriggers < tWait_TRs):
+        # Check for triggers and increment trigger count
+        nNew = CheckForTriggers()
+        nTriggers = nTriggers + nNew
+        if nTriggers >= tWait_TRs:
+            break
+
 
 # Handle end of a session
 def CoolDown():
@@ -234,6 +267,7 @@ def CoolDown():
     message1.setText("That's the end! ")
     message2.setText("Press 'q' or 'escape' to end the session.")
     win.logOnFlip(level=logging.EXP, msg='Display TheEnd')
+    win.clearBuffer() # clear the screen
     message1.draw()
     message2.draw()
     win.flip()
@@ -252,20 +286,21 @@ if not params['skipPrompts']:
     BasicPromptTools.RunPrompts(topPrompts,bottomPrompts,win,message1,message2)
 
 # wait for scanner
-message1.setText("Waiting for scanner to start...")
-message2.setText("(Press '%c' to override.)"%params['triggerKey'].upper())
+message1.setText("Please don't move...")
+message2.setText("") #("(Press '%c' to override.)"%params['triggerKey'].upper())
 message1.draw()
 message2.draw()
-win.logOnFlip(level=logging.EXP, msg='Display WaitingForScanner')
+win.logOnFlip(level=logging.EXP, msg='PleaseDontMove') #'Display WaitingForScanner')
 win.flip()
 event.waitKeys(keyList=params['triggerKey'])
 tStartSession = globalClock.getTime()
-AddToFlipTime(tStartSession+params['tStartup'])
+AddToFlipTime(tStartSession)
 
 # wait before first stimulus
 fixation.draw()
 win.logOnFlip(level=logging.EXP, msg='Display Fixation')
 win.flip()
+WaitForTrs(params['tStartup_TRs']) # wait for the given # of TRs
 
 
 # =========================== #
@@ -274,23 +309,25 @@ win.flip()
 
 # log experiment start and set up
 logging.log(level=logging.EXP, msg='---START EXPERIMENT---')
-tStimVec = np.zeros(params['nTrials'])
-iRespVec = np.zeros(params['nTrials'])
-iRespVec[:]=np.nan
-rtVec = np.zeros(params['nTrials'])
-rtVec[:]=np.nan
-# display images
-for iStim in range(0,params['nTrials']):
-    # display text
-    [respKey,tStimStart] = ShowImage(imageName=allImages[iStim],stimDur=params['stimDur'])
-    if iStim < params['nTrials']:
-        # pause
-        AddToFlipTime(params['ISI'])
-    # save stimulus time
-    tStimVec[iStim] = tStimStart
-    if respKey is not None and respKey[0] in params['respKeys']:
-        iRespVec[iStim] = params['respKeys'].index(respKey[0])
-        rtVec[iStim] = respKey[1]-tStimStart
+
+# run main experiment loop
+for iBlock in range(0,params['nBlocks']):
+    
+    # Run rest period
+    print('Resting Block %d: duration=%.2f'%(iBlock, params['restDur_TRs']) )
+    # Display fixation cross
+    win.clearBuffer() # clear the screen
+    fixation.draw() # draw the cross
+    win.logOnFlip(level=logging.EXP, msg='Display Fixation')
+    win.flip() # flip the window ASAP
+    # do rest period
+    WaitForTrs(params['restDur_TRs'])
+        
+    # display info to experimenter
+    print('Tapping Block %d: stimDur=%.2f, ISI=%.2f'%(iBlock, params['stimDur'][iBlock], params['ISI'][iBlock]) )
+    # display dot stim
+    tBlock = FlashDot(stimDur=params['stimDur'][iBlock], ISI=params['ISI'][iBlock], blockDur_TRs=params['blockDur_TRs'])
+    
 
 # Log end of experiment
 logging.log(level=logging.EXP, msg='--- END EXPERIMENT ---')
@@ -300,17 +337,18 @@ logging.log(level=logging.EXP, msg='--- END EXPERIMENT ---')
 # ============================= #
 
 # show user response times
-print('===Response times:===')
-print('Min RT = %.3f seconds'%(np.nanmin(rtVec)))
-print('Max RT = %.3f seconds'%(np.nanmax(rtVec)))
-print('Mean RT = %.3f seconds'%(np.nanmean(rtVec)))
-
+#print('===Response times:===')
+#print('Min RT = %.3f seconds'%(np.nanmin(rtVec)))
+#print('Max RT = %.3f seconds'%(np.nanmax(rtVec)))
+#print('Mean RT = %.3f seconds'%(np.nanmean(rtVec)))
+#
 # report the keys pressed
-print('===Keypresses:===')
-for iResp in range(0,len(params['respKeys'])):
-    print('Responded %s: %.1f%%'%(params['respKeys'][iResp],np.nanmean(iRespVec==iResp)*100))
-    
-print('Did not respond: %.1f%%'%(np.mean(np.isnan(iRespVec))*100))
+#print('===Keypresses:===')
+#for iResp in range(0,len(params['respKeys'])):
+#    print('Responded %s: %.1f%%'%(params['respKeys'][iResp],np.nanmean(iRespVec==iResp)*100))
+#    
+#print('Did not respond: %.1f%%'%(np.mean(np.isnan(iRespVec))*100))
 
 # exit experiment
 CoolDown()
+
