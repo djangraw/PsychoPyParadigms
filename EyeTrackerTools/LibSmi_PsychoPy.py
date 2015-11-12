@@ -25,6 +25,7 @@ along with OpenSesame.  If not, see <http://www.gnu.org/licenses/>.
 # Updated 8/20/15 by DJ - debugged, fixed PsychoPy/SMI coordinate mismatch, tested with SMI comp connection
 # Updated 8/26/15 by DJ - added run_calibration function
 # Updated 11/5/15 by DJ - added nr_of_pts input to run_calibration function
+# Updated 11/11/15 by DJ - added additional calibration parameters to calibration and run_calibration functions
 
 import os.path
 import time
@@ -146,13 +147,16 @@ class LibSmi_PsychoPy:
         print('received %s'%s)
         return s[:-1] # Strip off the tab and return
                 
-    def calibrate(self, nr_of_pts=9):
+    def calibrate(self, nr_of_pts=9, auto_accept=True, go_fast=False, calib_level=2):
         
         """<DOC>
         Performs calibration procedure
         
         Keyword arguments:
-        The number of points to be used for the validation (default=9)
+        nr_of_pts: The number of points to be used for the validation (default=9)
+        auto_accept: Let SMI pick when to accept a point (True [default]) or accept manually (False).
+        go_fast: Go quickly from point to point (True) or slower and more precise (False [default]).
+        calib_level: calibration check level (0=none,1=weak,2=medium [default],3=strong)
                 
         Exceptions:
         Throws a runtime_error if the calibration fails        
@@ -167,14 +171,23 @@ class LibSmi_PsychoPy:
         w = self.win.size[0]
         h = self.win.size[1]
         
+        # set calibration parameters
         # ET_CPA [command] [enable]
         self.send('ET_CPA 0 1') # Enable wait for valid data
         self.send('ET_CPA 1 1') # Enable randomize point order
-        self.send('ET_CPA 2 1') # Enable auto accept
+        if auto_accept:
+            self.send('ET_CPA 2 1') # Ensable auto accept
+        else:
+            self.send('ET_CPA 2 0') # Disable auto accept
+        if go_fast:
+            self.send('ET_CPA 3 1') # Set speed to fast
+        else:
+            self.send('ET_CPA 3 0') # Set speed to slow
         # ET_LEV [calibration level]
-        self.send('ET_LEV 2') # Set to medium
+        self.send('ET_LEV %d'%calib_level) # Set calibration check level to medium
         # ET_CSZ [xres] [yres]
         self.send('ET_CSZ %d %d' % (w, h)) # Set the screen resolution
+        
         # Start the calibration with default calibration points
         self.send('ET_DEF')
         self.send('ET_CAL %d' % nr_of_pts)
@@ -337,12 +350,18 @@ class LibSmi_PsychoPy:
         self.win.flip()
         
         
-    def run_calibration(self,nr_of_pts=9): # ADDED 8/27/15 BY DJ!
+    def run_calibration(self, nr_of_pts=9, auto_accept=True, go_fast=False, calib_level=2): # ADDED 8/27/15 BY DJ
         
         """<DOC>
         Allows user to select calibration, validation, or proceed to experiment using a keypress.
         
+        Keyword arguments:
+        nr_of_pts: The number of points to be used for the validation (default=9)
+        auto_accept: Let SMI pick when to accept a point (True [default]) or accept manually (False).
+        go_fast: Go quickly from point to point (True) or slower and more precise (False [default]).
+        calib_level: calibration check level (0=none,1=weak,2=medium [default],3=strong)
         Calls calibrate, validate.
+        
         </DOC>"""
         
         # Display instructions
@@ -362,7 +381,7 @@ class LibSmi_PsychoPy:
             elif key[0] == 'c':
                 # Calibrate
                 print("start calibration: %.3f sec"%self.clock.getTime())
-                self.calibrate(nr_of_pts=nr_of_pts)
+                self.calibrate(nr_of_pts=nr_of_pts, auto_accept=auto_accept, go_fast=go_fast, calib_level=calib_level)
             elif key[0] == 'v':
                 # Validate calibration
                 print("start validation: %.3f sec"%self.clock.getTime())
