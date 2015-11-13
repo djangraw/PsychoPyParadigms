@@ -26,6 +26,7 @@ along with OpenSesame.  If not, see <http://www.gnu.org/licenses/>.
 # Updated 8/26/15 by DJ - added run_calibration function
 # Updated 11/5/15 by DJ - added nr_of_pts input to run_calibration function
 # Updated 11/11/15 by DJ - added additional calibration parameters to calibration and run_calibration functions
+# Updated 11/13/15 by DJ - added validation_manual function
 
 import os.path
 import time
@@ -349,6 +350,84 @@ class LibSmi_PsychoPy:
         # refresh screen
         self.win.flip()
         
+    def validate_manual(self,nr_of_pts=9): # ADDED 11/13/15 by DJ!
+        
+        """<DOC>
+        Performs validation procedure manually: use space to move through points, or numbers + wert keys to pick points manually:
+        2   7   3
+          w   e  
+        6   1   8
+          r   t  
+        4   9   5
+        
+        Keyword arguments:
+        The number of points to be used for the validation (default=9)
+                
+        Exceptions:
+        Throws a runtime_error if the calibration fails        
+        </DOC>"""
+        
+        # inform user
+        self.text.text = 'Running validation.'
+        self.text.draw()
+        self.win.flip()
+        
+        # get screen size
+        w = self.win.size[0]
+        h = self.win.size[1]
+        
+        # declare 13 points in SMI coordinates
+        pts = [(w*0.5,h*0.5), (w*0.05,h*0.05),(w*0.95,h*0.05), (w*0.05,h*0.95),(w*0.95,h*0.95), (w*0.05,h*0.5), (w*0.5,h*0.05), (w*0.95,h*0.5), (w*0.5,h*0.95), (w*0.275,h*0.275),(w*0.725,h*0.275), (w*0.275,h*0.725),(w*0.725,h*0.725)]
+        ptKeys = ['1','2','3','4','5','6','7','8','9','w','e','r','t']
+        iKey = -1
+        
+        while True:
+            
+            # Poll the keyboard to capture escape pressed
+            key = event.getKeys()
+            if len(key) > 0 and key[0] in ['q','Escape']:
+                self.text.text = 'Validation aborted.'
+                self.text.draw()
+                break
+            elif len(key) > 0 and key[0] == 'space':
+                iKey = iKey + 1
+                if iKey>=len(pts):
+                    iKey=0
+                x,y = pts[iKey]
+                
+                # Redraw dot and refresh window
+                self.innercircle.pos = (x-0.5*w,0.5*h-y) # SMI considers (0,0) to be top left
+                self.outercircle.pos = (x-0.5*w,0.5*h-y) # SMI considers (0,0) to be top left
+                self.outercircle.draw()
+                self.innercircle.draw()
+                self.win.flip()
+                
+                if self.useSound:
+                    self.beep1.play()
+                    
+            elif len(key) > 0 and key[0] in ptKeys:
+                print key
+                iKey = ptKeys.index(key[0])
+                print iKey
+                print pts[iKey]
+                x,y = pts[iKey]            
+                
+                # Redraw dot and refresh window
+                self.innercircle.pos = (x-0.5*w,0.5*h-y) # SMI considers (0,0) to be top left
+                self.outercircle.pos = (x-0.5*w,0.5*h-y) # SMI considers (0,0) to be top left
+                self.outercircle.draw()
+                self.innercircle.draw()
+                self.win.flip()
+                
+                if self.useSound:
+                    self.beep1.play()
+        
+        if self.useSound:
+            self.beep2.play()
+            
+        # refresh screen
+        self.win.flip()
+        
         
     def run_calibration(self, nr_of_pts=9, auto_accept=True, go_fast=False, calib_level=2): # ADDED 8/27/15 BY DJ
         
@@ -365,7 +444,7 @@ class LibSmi_PsychoPy:
         </DOC>"""
         
         # Display instructions
-        instructionStr = "Press c to calibrate, v to validate, and q to exit setup."
+        instructionStr = "Press c to calibrate, v to validate, m for manual check, and q to exit setup."
         # print instructions
         self.text.text=instructionStr
         self.text.draw()
@@ -386,6 +465,10 @@ class LibSmi_PsychoPy:
                 # Validate calibration
                 print("start validation: %.3f sec"%self.clock.getTime())
                 self.validate()
+            elif key[0] == 'm':
+                # Validate calibration
+                print("start manual check: %.3f sec"%self.clock.getTime())
+                self.validate_manual()
             elif key[0] in ['q','escape']:
                 print("quit setup: %.3f sec"%self.clock.getTime())
                 isDone = True
