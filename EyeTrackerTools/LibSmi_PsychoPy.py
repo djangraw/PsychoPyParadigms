@@ -27,6 +27,7 @@ along with OpenSesame.  If not, see <http://www.gnu.org/licenses/>.
 # Updated 11/5/15 by DJ - added nr_of_pts input to run_calibration function
 # Updated 11/11/15 by DJ - added additional calibration parameters to calibration and run_calibration functions
 # Updated 11/13/15 by DJ - added validation_manual function
+# Updated 11/17/15 by DJ - changed default calibration params to most conservative ones. Updated comments.
 
 import os.path
 import time
@@ -148,16 +149,16 @@ class LibSmi_PsychoPy:
         print('received %s'%s)
         return s[:-1] # Strip off the tab and return
                 
-    def calibrate(self, nr_of_pts=9, auto_accept=True, go_fast=False, calib_level=2):
+    def calibrate(self, nr_of_pts=13, auto_accept=False, go_fast=False, calib_level=3):
         
         """<DOC>
         Performs calibration procedure
         
         Keyword arguments:
-        nr_of_pts: The number of points to be used for the validation (default=9)
-        auto_accept: Let SMI pick when to accept a point (True [default]) or accept manually (False).
+        nr_of_pts: The number of points to be used for the validation (default=13)
+        auto_accept: Let SMI pick when to accept a point (True) or accept manually on the eye tracker computer (False [default]).
         go_fast: Go quickly from point to point (True) or slower and more precise (False [default]).
-        calib_level: calibration check level (0=none,1=weak,2=medium [default],3=strong)
+        calib_level: calibration check level (0=none,1=weak,2=medium,3=strong [default])
                 
         Exceptions:
         Throws a runtime_error if the calibration fails        
@@ -263,10 +264,10 @@ class LibSmi_PsychoPy:
         Performs calibration procedure
         
         Keyword arguments:
-        The number of points to be used for the validation (default=9)
-                
+        None
+        
         Exceptions:
-        Throws a runtime_error if the calibration fails        
+        Throws a runtime_error if the validation fails.
         </DOC>"""
         
         # inform user
@@ -316,7 +317,7 @@ class LibSmi_PsychoPy:
             elif cmd[0] == 'ET_CHG':                
                 pt_nr = int(cmd[1])
                 if pt_nr-1 not in pts:
-                    raise exceptions.runtime_error('Something went wrong during the calibration. Please try again.')
+                    raise exceptions.runtime_error('Something went wrong during the validation. Please try again.')
                 x, y = pts[pt_nr-1]
                 # Redraw dot and refresh window
                 self.innercircle.pos = (x-0.5*w,0.5*h-y) # SMI considers (0,0) to be top left
@@ -350,7 +351,7 @@ class LibSmi_PsychoPy:
         # refresh screen
         self.win.flip()
         
-    def validate_manual(self,nr_of_pts=9): # ADDED 11/13/15 by DJ!
+    def validate_manual(self,nr_of_pts=13): # ADDED 11/13/15 by DJ!
         
         """<DOC>
         Performs validation procedure manually: use space to move through points, or numbers + wert keys to pick points manually:
@@ -361,10 +362,10 @@ class LibSmi_PsychoPy:
         4   9   5
         
         Keyword arguments:
-        The number of points to be used for the validation (default=9)
+        The number of points to be used for the validation (default=13)
                 
         Exceptions:
-        Throws a runtime_error if the calibration fails        
+        None
         </DOC>"""
         
         # inform user
@@ -429,16 +430,16 @@ class LibSmi_PsychoPy:
         self.win.flip()
         
         
-    def run_calibration(self, nr_of_pts=9, auto_accept=True, go_fast=False, calib_level=2): # ADDED 8/27/15 BY DJ
+    def run_calibration(self, nr_of_pts=13, auto_accept=False, go_fast=False, calib_level=3): # ADDED 8/27/15 BY DJ
         
         """<DOC>
         Allows user to select calibration, validation, or proceed to experiment using a keypress.
         
         Keyword arguments:
-        nr_of_pts: The number of points to be used for the validation (default=9)
-        auto_accept: Let SMI pick when to accept a point (True [default]) or accept manually (False).
+        nr_of_pts: The number of points to be used for the validation (default=13)
+        auto_accept: Let SMI pick when to accept a point (True) or accept manually on the eye tracker computer (False [default]).
         go_fast: Go quickly from point to point (True) or slower and more precise (False [default]).
-        calib_level: calibration check level (0=none,1=weak,2=medium [default],3=strong)
+        calib_level: calibration check level (0=none,1=weak,2=medium,3=strong [default])
         Calls calibrate, validate.
         
         </DOC>"""
