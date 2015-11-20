@@ -407,10 +407,7 @@ class LibSmi_PsychoPy:
                     self.beep1.play()
                     
             elif len(key) > 0 and key[0] in ptKeys:
-                print key
                 iKey = ptKeys.index(key[0])
-                print iKey
-                print pts[iKey]
                 x,y = pts[iKey]            
                 
                 # Redraw dot and refresh window
