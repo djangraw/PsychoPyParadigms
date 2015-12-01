@@ -24,20 +24,20 @@ params = {
 # Declare response parameters
     'skipPrompts': False,     # go right to the scanner-wait page
     'triggerKey': 't',        # key from scanner that says scan is starting
-    'upKey': 'up',
-    'downKey': 'down',
-    'selectKey': 'space',
-    'tRest': 300, # time (in seconds) of rest period
+    'upKey': 'r',#'up',
+    'downKey': 'y',#'down',
+    'selectKey': 'b',#'space',
+    'tRest': 0, #300, # time (in seconds) of rest period
 # declare movie and question files
     'textDir': 'stimuli/',
     'restPromptsFile': 'restPrompts_ARSQ_5min_EyesClosed.txt', 
-    'questionnairePromptsFile': 'questionnairePrompts_ARSQ_EyesClosed.txt',
+    'questionnairePromptsFile': 'questionnairePrompts_ARSQ_ButtonBox.txt',
     'questionFile': 'ARSQ_PsychoPy.txt', 
     'randomizeQuestionOrder': False, # randomize order of questions (if true, questionOrder will be overwritten later)
     'questionOrder': range(0,30,3) + range(1,30,3) + range(2,30,3) + range(30,55), # one from each of the main areas, then the second, then the third, then the others, and finally the validation. 
 # declare other stimulus parameters
     'fullScreen': True,       # run in full screen mode?
-    'screenToShow': 0,        # display on primary screen (0) or secondary (1)?
+    'screenToShow': 1,        # display on primary screen (0) or secondary (1)?
     'fixCrossSize': 10,       # size of cross, in pixels
     'fixCrossPos': [0,0],     # (x,y) pos of fixation cross displayed during each session
 }
@@ -88,9 +88,9 @@ params['skipPrompts'] = expInfo['skipPrompts']
 [questions,options,_] = BasicPromptTools.ParseQuestionFile(params['textDir']+params['questionFile'],optionsType='Likert')
 print('%d questions loaded from %s'%(len(questions),params['questionFile']))
 [topRestPrompts,bottomRestPrompts] = BasicPromptTools.ParsePromptFile(params['textDir']+params['restPromptsFile'])
-print('%d prompts loaded from %s'%(len(restPrompts),params['restPromptsFile']))
+print('%d prompts loaded from %s'%(len(topRestPrompts),params['restPromptsFile']))
 [topQuestionnairePrompts,bottomQuestionnairePrompts] = BasicPromptTools.ParsePromptFile(params['textDir']+params['questionnairePromptsFile'])
-print('%d prompts loaded from %s'%(len(questionnairePrompts),params['questionnairePromptsFile']))
+print('%d prompts loaded from %s'%(len(topQuestionnairePrompts),params['questionnairePromptsFile']))
 
 # shuffle the order
 if params['randomizeQuestionOrder']:

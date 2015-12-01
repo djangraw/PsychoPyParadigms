@@ -1,8 +1,8 @@
 # Minimize interaction with the participant and move on to the next instruction:
 +Next comes the questionnaire part of the experiment. Please follow the instruction on the screen and use the button box to answer the statements.
 -Press any button to continue.
-# Instructions on the screen before the ARSQ is filled out:
-+You will now see a number of statements about possible feelings, physical sensations and thoughts during the eyes-closed rest period. Please indicate the extent to which you agree with each statement.
+# Instructions on the screen before the ARSQ is filled out
++You will now see a number of statements about possible feelings, physical sensations and thoughts during the rest period. Please indicate the extent to which you agree with each statement.
 -Press any button to continue.
 +Use the up and down buttons to highlight your response. Then use the rightward button to answer and move on to the next question.
--WHEN YOU’RE READY TO BEGIN, press any key.
+-WHEN YOU ARE READY TO BEGIN, press any button.
