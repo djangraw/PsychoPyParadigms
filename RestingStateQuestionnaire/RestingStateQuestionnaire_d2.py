@@ -5,6 +5,7 @@ such as the Amsterdam Resting-State Questionnaire."""
 # Created 9/8/15 by DJ.
 # Updated 9/9/15 by DJ - switched from PromptTools to QuestionTools.
 # Updated 11/9/15 by DJ - switched from QuestionTools to BasicPromptTools, used ParsePromptFile.
+# Updated 11/24/15 by DJ - bug fixes
 
 # Import packages
 from psychopy import core, gui, data, event, sound, logging #, visual # visual causes a bug in the guis, so I moved it down.
@@ -27,7 +28,7 @@ params = {
     'upKey': 'r',#'up',
     'downKey': 'y',#'down',
     'selectKey': 'b',#'space',
-    'tRest': 0, #300, # time (in seconds) of rest period
+    'tRest': 0, # time (in seconds) of rest period
 # declare movie and question files
     'textDir': 'stimuli/',
     'restPromptsFile': 'restPrompts_ARSQ_5min_EyesClosed.txt', 
