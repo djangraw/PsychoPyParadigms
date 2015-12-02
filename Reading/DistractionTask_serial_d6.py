@@ -1,6 +1,6 @@
  #!/usr/bin/env python2
-"""Display multi-page text with simultaneous auditory distractions."""
-# DistractionTask_serial_d4.py
+"""Display multi-page text with simultaneous auditory distractions, recording eye position data using the SMI eye tracker."""
+# DistractionTask_serial_d6.py
 # Created 3/16/15 by DJ based on VidLecTask.py
 # Updated 3/31/15 by DJ - renamed from ReadingTask_dict_d2.py.
 # Updated 4/1-16/15 by DJ - incorporated eyelink fully, renamed ReadingTask_eyelink_d1.py.
@@ -17,6 +17,8 @@
 # Updated 9/17/15 by DJ - added logging of each message sent
 # Updated 10/22/15 by DJ - added saving
 # Updated 10/29/15 by DJ - cleaned up slightly, edited PromptTools to ask subjects not to skip around.
+# Updated 11/11/15 by DJ - added additional calibration parameters (changed name to _d6)
+# Updated 11/12/15 by DJ - switched to 1024x768 (max res of rear projector)
 
 # Import packages
 from psychopy import core, gui, data, event, sound, logging #, visual # visual causes a bug in the guis, so I moved it down.
@@ -37,20 +39,25 @@ from EyeLinkCoreGraphicsPsychoPy import EyeLinkCoreGraphicsPsychoPy
 # ===== PARAMETERS ===== #
 # ====================== #
 # Save the parameters declared below?
-saveParams = True;
-newParamsFilename = 'DistractionParams_serial_S5.pickle'
-expInfoFilename = 'lastDistractionInfo_serial_S5.pickle'
+saveParams = True
+newParamsFilename = 'DistractionParams_serial_d6.pickle'
+expInfoFilename = 'lastDistractionInfo_serial_d6.pickle'
 
 # Declare primary task parameters.
 params = {
     # FOR INITIAL PILOTS
-#    'imagePrefixList': ['Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec07_stretch_gray','Greeks_Lec07_stretch_gray'],
-    'imagePrefixList': ['Greeks_Lec07_stretch_gray','Greeks_Lec07_stretch_gray','Greeks_Lec10_stretch_gray','Greeks_Lec10_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray'],
-    'startPageList': [1,31,1,31,61,91], # page where each session should start
-    'endPageList': [30,60,30,60,90,120], # inclusive
-    'soundFileList': ['Lecture02_40min.wav']*6,
+    'imagePrefixList': ['Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec07_stretch_gray','Greeks_Lec07_stretch_gray'],
+    'startPageList': [1,31,61,91,1,31], # page where each session should start
+    'endPageList': [30,60,90,120,30,60], # inclusive
+    'readingQuizList':['Lecture02Questions_d4_read1.txt','Lecture02Questions_d4_read2.txt','Lecture02Questions_d4_read3.txt','Lecture02Questions_d4_read4.txt','Lecture07Questions_d3_read1.txt','Lecture07Questions_d3_read2.txt',],
+    'soundFileList': ['Lecture10_40min.wav']*6,
+#    'imagePrefixList': ['Greeks_Lec07_stretch_gray','Greeks_Lec07_stretch_gray','Greeks_Lec10_stretch_gray','Greeks_Lec10_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray'],
+#    'startPageList': [1,31,1,31,61,91], # page where each session should start
+#    'endPageList': [30,60,30,60,90,120], # inclusive
+#    'soundFileList': ['Lecture02_40min.wav']*6,
+#    'readingQuizList':['Lecture07Questions_d3_read1.txt','Lecture07Questions_d3_read2.txt','Lecture10Questions_d4_read1.txt','Lecture10Questions_d4_read2.txt','Lecture02Questions_d4_read3.txt','Lecture02Questions_d4_read4.txt'],
+#    'soundFileList': ['Lecture02_40min.wav']*6,
     'promptTypeList': ['AttendReading','AttendBoth_short','AttendReading_short','AttendBoth_short','AttendBoth_short','AttendReading_short'],
-    'readingQuizList':['Lecture07Questions_d3_read1.txt','Lecture07Questions_d3_read2.txt','Lecture10Questions_d4_read1.txt','Lecture10Questions_d4_read2.txt','Lecture02Questions_d4_read3.txt','Lecture02Questions_d4_read4.txt'],
     'soundQuizList':['BLANK.txt']*6,
     'quizPromptList':['TestReading_box']*6,
     'probSoundList':[0.5]*6,
@@ -65,10 +72,10 @@ params = {
     'probeDur': 60,           # max time subjects have to answer a Probe Q
     'keyEndsProbe': True,     # will a keypress end the probe?
     'pageKey': 'b',#'space',       # key to turn page
-    'respKeys': ['r','b','y','g'], # keys to be used for responses (clockwise from 9:00) - "DIAMOND" RESPONSE BOX
+    'respKeys': ['g','r','b','y'], # keys to be used for responses (clockwise from 9:00) - "DIAMOND" RESPONSE BOX
     'wanderKey': 'z',         # key to be used to indicate mind-wandering
     'triggerKey': 't',        # key from scanner that says scan is starting
-# declare movie and question files
+# declare image and question files
     'imageDir': 'ReadingImages/',
     'imagePrefix': '', # images must start with this and end with _page<number>.jpg
     'soundDir': 'sounds/',
@@ -86,25 +93,35 @@ params = {
 # declare other stimulus parameters
     'fullScreen': True,       # run in full screen mode?
     'screenToShow': 1,        # display on primary screen (0) or secondary (1)?
-    'imageSize': (1201,945), # in pixels... set to None for exact size of screen
+    'imageSize': (960,709), # (FOR 1024x768 SCREEN) # in pixels... set to None for exact size of screen    #(1201,945), # (FOR 1280x1024 SCREEN)
     'fixCrossSize': 10,       # size of cross, in pixels
-    'fixCrossPos': [-600, 472], # (x,y) pos of fixation cross displayed before each page (for drift correction)
+    'fixCrossPos': (-480,354), # (x,y) pos of fixation cross displayed before each page (for drift correction)   #[-600, 472],
     'usePhotodiode': False,     # add sync square in corner of screen
-# declare serial port parameters
+# declare serial port & calibration parameters
     'portName': '/dev/tty.usbserial',
     'portBaud': 115200,
-    'screenColor':(128,128,128)
+    'screenColor':(128,128,128),
+    'calNPoints': 13, # number of points in the calibration (and validation)The number of points to be used for the validation (standard=9)
+    'calAutoAccept': False, # Let SMI pick when to accept a point (True [default]) or accept manually (False).
+    'calGoFast': False, # Go quickly from point to point (True) or slower and more precise (False [default]).
+    'calCheckLevel': 3 #calibration check level (0=none,1=weak,2=medium,3=strong [default])
 }
 
 # save parameters
 if saveParams:
-    dlgResult = gui.fileSaveDlg(prompt='Save Params...',initFilePath = os.getcwd() + '/Params', initFileName = newParamsFilename,
+    print("Opening save dialog:")
+    dlgResult = gui.fileSaveDlg(prompt='Save Params...',initFilePath = os.getcwd() + '/params', initFileName = newParamsFilename,
         allowed="PICKLE files (.pickle)|.pickle|All files (.*)|")
     newParamsFilename = dlgResult
+    print("dlgResult: %s"%dlgResult)
     if newParamsFilename is None: # keep going, but don't save
         saveParams = False
+        print("Didn't save params.")
     else:
         toFile(newParamsFilename, params)# save it!
+        print("Saved params to %s."%newParamsFilename)
+#    toFile(newParamsFilename, params)
+#    print("saved params to %s."%newParamsFilename)
 
 # ========================== #
 # ===== SET UP LOGGING ===== #
@@ -146,7 +163,7 @@ params['readingQuiz'] = params['readingQuizList'][expInfo['session']-1]
 params['soundQuiz'] = params['soundQuizList'][expInfo['session']-1]
 params['quizPrompt'] = params['quizPromptList'][expInfo['session']-1]
 params['probSound'] = params['probSoundList'][expInfo['session']-1]
-tSound= expInfo['tSound']
+tSound = expInfo['tSound']
 
 # transfer skipPrompts
 params['skipPrompts'] = expInfo['skipPrompts']
@@ -168,12 +185,38 @@ options_all = [options_all[i] for i in newOrder]
 answers_all = [answers_all[i] for i in newOrder]
 params['questionOrder'] = newOrder
 
+
+# ========================== #
+# ===== GET SCREEN RES ===== #
+# ========================== #
+
+# kluge for secondary monitor
+if params['fullScreen']: 
+    screens = AppKit.NSScreen.screens()
+    screenRes = (int(screens[params['screenToShow']].frame().size.width), int(screens[params['screenToShow']].frame().size.height))
+#    screenRes = (1920, 1200)
+    if params['screenToShow']>0:
+        params['fullScreen'] = False
+else:
+    screenRes = (1024,768)
+
+# save screen size to params struct 
+params['screenSize'] = screenRes
+
+# adjust image size if one was not entered.
+if params['imageSize'] is None:
+    params['imageSize'] = (screenRes[0], screenRes[1])
+    
+    
+# ========================== #
+# ===== LOG PARAMETERS ===== #
+# ========================== #
+
 # print params to Output
 print 'params = {'
 for key in sorted(params.keys()):
     print "   '%s': %s"%(key,params[key]) # print each value as-is (no quotes)
 print '}'
-    
 
 #make a log file to save parameter/event  data
 filename = 'DistractionTask-%s-%d-%s'%(expInfo['subject'], expInfo['session'], dateStr) #'Sart-' + expInfo['subject'] + '-' + expInfo['session'] + '-' + dateStr
@@ -188,28 +231,6 @@ for key in sorted(params.keys()): # in alphabetical order
     logging.log(level=logging.INFO, msg='%s: %s'%(key,params[key]))
 
 logging.log(level=logging.INFO, msg='---END PARAMETERS---')
-
-
-# ========================== #
-# ===== GET SCREEN RES ===== #
-# ========================== #
-
-# kluge for secondary monitor
-if params['fullScreen']: 
-    screens = AppKit.NSScreen.screens()
-    screenRes = (int(screens[params['screenToShow']].frame().size.width), int(screens[params['screenToShow']].frame().size.height))
-#    screenRes = [1920, 1200]
-    if params['screenToShow']>0:
-        params['fullScreen'] = False
-else:
-    screenRes = [800,600]
-
-print "screenRes = [%d,%d]"%(screenRes[0],screenRes[1])
-
-# adjust image size if one was not entered.
-if params['imageSize'] is None:
-    params['imageSize'] = (screenRes[0], screenRes[1])
-    
 # ========================== #
 # ===== SET UP TRACKER ===== #
 # ========================== #
@@ -443,8 +464,7 @@ if error:
     print("===WARNING: eyelink startRecording returned %s"%error)
 """
 # run calibration and validation
-myTracker.run_calibration()
-
+myTracker.run_calibration(nr_of_pts=params['calNPoints'], auto_accept=params['calAutoAccept'], go_fast=params['calGoFast'], calib_level=params['calCheckLevel'])
 
 # display prompts
 if not params['skipPrompts']:

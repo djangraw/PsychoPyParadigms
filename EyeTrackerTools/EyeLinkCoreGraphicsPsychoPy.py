@@ -24,6 +24,7 @@
 # Created 4/8/15 by DJ - adapted from EyelinkCoreGraphicsPyGame.py.
 # Updated 4/9/15 by DJ - extreme debugging, borrowing from pylinkwrapper on github
 # Updated 4/10/15 by DJ - switched win units to pixels, general cleanup
+# Updated 12/1/15 by DJ - added optional bgcolor and fgcolor inputs
 
 
 from psychopy import visual, sound, event
@@ -42,13 +43,13 @@ script_home = os.path.dirname(sys.argv[0])
 if len(script_home) > 0 : os.chdir(script_home)
     
 class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
-    def __init__(self, w, h, tracker):
+    def __init__(self, w, h, tracker,bgcolor=(255,255,255),fgcolor=(0,0,0)):
         pylink.EyeLinkCustomDisplay.__init__(self)
 
         # initialize window
         fullScreen=True
         screenToShow=0
-        self.win = visual.Window((w,h), fullscr=fullScreen, allowGUI=False, monitor='testMonitor',screen=screenToShow, units='pix', name='win', color=(255,255,255), colorSpace='rgb255')
+        self.win = visual.Window((w,h), fullscr=fullScreen, allowGUI=False, monitor='testMonitor',screen=screenToShow, units='pix', name='win', color=bgcolor, colorSpace='rgb255')
         self.win.flip(clearBuffer=True)
         
         # declare sounds
@@ -70,13 +71,13 @@ class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
         self.tmp_file = os.path.join(tempfile.gettempdir(),'_eleye.png') # from pylinkwrapper on github
         
         # declare variables from pylinkwrapper on github
-        self.blankdisplay = visual.Rect(self.win,w,h,units='pix', name='BACKGROUND', fillColor=(255,255,255),fillColorSpace='rgb255', lineColor=(255,255,255),lineColorSpace='rgb255') # adapted from pylinkwrapper on github
+        self.blankdisplay = visual.Rect(self.win,w,h,units='pix', name='BACKGROUND', fillColor=bgcolor,fillColorSpace='rgb255', lineColor=bgcolor,lineColorSpace='rgb255') # adapted from pylinkwrapper on github
         # declare circle sizes    
         outsz = 10
         insz = 4        
         # create white circle in a black circle    
-        self.outercircle = visual.Circle(self.win,pos=(0,0), radius=outsz, fillColor=(0,0,0), fillColorSpace='rgb255', lineColor=(0,0,0),lineColorSpace='rgb255', units='pix',name='outercircle')
-        self.innercircle = visual.Circle(self.win,pos=(0,0), radius=insz, fillColor=(255,255,255), fillColorSpace='rgb255', lineColor=(255,255,255),lineColorSpace='rgb255', units='pix',name='innercircle')
+        self.outercircle = visual.Circle(self.win,pos=(0,0), radius=outsz, fillColor=fgcolor, fillColorSpace='rgb255', lineColor=fgcolor,lineColorSpace='rgb255', units='pix',name='outercircle')
+        self.innercircle = visual.Circle(self.win,pos=(0,0), radius=insz, fillColor=bgcolor, fillColorSpace='rgb255', lineColor=bgcolor,lineColorSpace='rgb255', units='pix',name='innercircle')
         self.rgb_index_array = None # rgb index array for line drawings
         self.imgstim_size = None
         self.eye_image = None 
