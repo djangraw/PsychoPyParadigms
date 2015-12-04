@@ -25,7 +25,7 @@ params = {
     'nBlocks': 3,            # number of trials in this session
     'movieFolder': 'Videos/', # relative path to tapping videos
     'movieNames': ['Tapping_1Hz.mp4','Tapping_2Hz.mp4','Tapping_0p5Hz.mp4'], # filenames of movies
-    'movieDurs': [4.0, 2.0, 8.0], # duration of movie (s)... needed because PsychoPy's movie looping doesn't work properly
+    'movieDurs': [1.0, 0.5, 2.0], # duration of movie (s)... needed because PsychoPy's movie looping doesn't work properly
     'blockDur_TRs': 3,            # duration of each tapping block (in TRs)
     'restDur_TRs': 3,             # duration of each rest block (in TRs)
     'tStartup_TRs': 0,            # pause time before starting first stimulus (in TRs)
