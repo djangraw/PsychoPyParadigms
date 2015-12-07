@@ -3,6 +3,7 @@
 # TappingWithTrTiming_Movie_d1.py
 # Created 11/09/15 by DJ based on DistractionTask_practice_d3.py
 # Updated 12/4/15 by DJ - made movie version
+# Updated 12/7/15 by DJ - updated prompts, general cleanup
 
 from psychopy import core, gui, data, event, sound, logging 
 # from psychopy import visual # visual causes a bug in the guis, so it's declared after all GUIs run.
@@ -33,7 +34,7 @@ params = {
 # declare prompt and question files
     'skipPrompts': False,     # go right to the scanner-wait page
     'promptDir': 'Text/',  # directory containing prompts and questions files
-    'promptFile': 'TappingPrompts.txt', # Name of text file containing prompts 
+    'promptFile': 'TappingPrompts_Movie.txt', # Name of text file containing prompts 
 # declare display parameters
     'fullScreen': True,       # run in full screen mode?
     'screenToShow': 1,        # display on primary screen (0) or secondary (1)?
@@ -151,9 +152,6 @@ fixation = visual.ShapeStim(win,lineColor='#000000',lineWidth=3.0,vertices=((fCP
 message1 = visual.TextStim(win, pos=[0,+.5], wrapWidth=1.5, color='#000000', alignHoriz='center', name='topMsg', text="aaa",units='norm')
 message2 = visual.TextStim(win, pos=[0,-.5], wrapWidth=1.5, color='#000000', alignHoriz='center', name='bottomMsg', text="bbb",units='norm')
 
-# initialize main dot stimulus
-#stimDot = visual.GratingStim(win, color='black', tex=None, mask='circle',pos=params['dotPos'],size=params['dotSize'],units='pix')
-
 # check if movie exists
 pathToMovie = '%s%s'%(params['movieFolder'], params['movieNames'][0])
 if not os.path.exists(pathToMovie):
@@ -169,7 +167,7 @@ mov = visual.MovieStim2(win, pathToMovie,
                        loop=False)
                        
 # Create bottom text stim
-text = visual.TextStim(win, 'Please tap along with the video.', pos=(0, -250), units = 'pix')
+tapText = visual.TextStim(win, 'Please tap along with the video.', pos=(0, -250), units = 'pix', color='#000000')
 
 # read questions and answers from text files
 [topPrompts,bottomPrompts] = BasicPromptTools.ParsePromptFile(params['promptDir']+params['promptFile'])
@@ -224,7 +222,7 @@ def PlayTappingMovie(pathToMovie, loopDur, blockDur_TRs):
         # displayed.
         if shouldflip:
             # Movie has already been drawn , so just draw text stim and flip
-            text.draw()
+            tapText.draw()
             win.flip()
         else:
             # Give the OS a break if a flip is not needed
@@ -249,7 +247,6 @@ def PlayTappingMovie(pathToMovie, loopDur, blockDur_TRs):
     tBlock = globalClock.getTime()-tBlockStart
     print('Block time: %.3f seconds'%(tBlock))
     
-    
     return (tBlock)
 
 # Pause until a given number of TRs is received.
@@ -262,7 +259,6 @@ def WaitForTrs(tWait_TRs):
         nTriggers = nTriggers + nNew
         if nTriggers >= tWait_TRs:
             break
-
 
 # Handle end of a session
 def CoolDown():
@@ -332,7 +328,6 @@ for iBlock in range(0,params['nBlocks']):
     # display tapping movie
     pathToMovie = '%s%s'%(params['movieFolder'],params['movieNames'][iBlock])
     tBlock = PlayTappingMovie(pathToMovie=pathToMovie, loopDur=params['movieDurs'][iBlock], blockDur_TRs=params['blockDur_TRs'])
-    
 
 # Log end of experiment
 logging.log(level=logging.EXP, msg='--- END EXPERIMENT ---')
