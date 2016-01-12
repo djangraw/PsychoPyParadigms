@@ -28,6 +28,7 @@ along with OpenSesame.  If not, see <http://www.gnu.org/licenses/>.
 # Updated 11/11/15 by DJ - added additional calibration parameters to calibration and run_calibration functions
 # Updated 11/13/15 by DJ - added validation_manual function
 # Updated 11/17/15 by DJ - changed default calibration params to most conservative ones. Updated comments.
+# Updated 1/11/16 by DJ - added start_movie and end_movie functions, added save_eye_movie input to calibrate and run_calibration fns
 
 import os.path
 import time
@@ -89,8 +90,8 @@ class LibSmi_PsychoPy:
         # initialize sounds
         self.useSound = useSound
         if self.useSound:
-            self.beep1 = sound.Sound(value=220, secs=0.200, volume=0.5)
-            self.beep2 = sound.Sound(value=440, secs=0.200, volume=0.5)
+            self.beep1 = sound.Sound(value=220, secs=0.200, volume=0.1)
+            self.beep2 = sound.Sound(value=440, secs=0.200, volume=0.1)
         # create clock (for debugging)
         self.clock = core.Clock()
         # make sure recording is stopped
@@ -149,7 +150,7 @@ class LibSmi_PsychoPy:
         print('received %s'%s)
         return s[:-1] # Strip off the tab and return
                 
-    def calibrate(self, nr_of_pts=13, auto_accept=False, go_fast=False, calib_level=3):
+    def calibrate(self, nr_of_pts=13, auto_accept=False, go_fast=False, calib_level=3, save_eye_movie=False):
         
         """<DOC>
         Performs calibration procedure
@@ -173,6 +174,12 @@ class LibSmi_PsychoPy:
         w = self.win.size[0]
         h = self.win.size[1]
         
+        # set recording status
+        if save_eye_movie:
+            self.send('ET_EQE 1')
+        else:
+            self.send('ET_EQE 0')
+            
         # set calibration parameters
         # ET_CPA [command] [enable]
         self.send('ET_CPA 0 1') # Enable wait for valid data
@@ -427,7 +434,7 @@ class LibSmi_PsychoPy:
         self.win.flip()
         
         
-    def run_calibration(self, nr_of_pts=13, auto_accept=False, go_fast=False, calib_level=3): # ADDED 8/27/15 BY DJ
+    def run_calibration(self, nr_of_pts=13, auto_accept=False, go_fast=False, calib_level=3, save_eye_movie=False): # ADDED 8/27/15 BY DJ
         
         """<DOC>
         Allows user to select calibration, validation, or proceed to experiment using a keypress.
@@ -437,6 +444,7 @@ class LibSmi_PsychoPy:
         auto_accept: Let SMI pick when to accept a point (True) or accept manually on the eye tracker computer (False [default]).
         go_fast: Go quickly from point to point (True) or slower and more precise (False [default]).
         calib_level: calibration check level (0=none,1=weak,2=medium,3=strong [default])
+        save_eye_movie: save out movie from calibration (true, false [default])
         Calls calibrate, validate.
         
         </DOC>"""
@@ -458,7 +466,7 @@ class LibSmi_PsychoPy:
             elif key[0] == 'c':
                 # Calibrate
                 print("start calibration: %.3f sec"%self.clock.getTime())
-                self.calibrate(nr_of_pts=nr_of_pts, auto_accept=auto_accept, go_fast=go_fast, calib_level=calib_level)
+                self.calibrate(nr_of_pts=nr_of_pts, auto_accept=auto_accept, go_fast=go_fast, calib_level=calib_level,save_eye_movie=save_eye_movie)
             elif key[0] == 'v':
                 # Validate calibration
                 print("start validation: %.3f sec"%self.clock.getTime())
@@ -602,7 +610,33 @@ class LibSmi_PsychoPy:
         
         self.tracker.close()
         
+    def start_movie(self, format='XMP4',filename='movie', path='', duration_ms=0):
         
+        """Start recording a movie of the eye."""
+        
+        # get number for format specifier
+        formats=['JPG','BMP','XVID','HUFFYUV','ALPARY','XMP4']
+        try:
+            formatNum=formats.index(format)
+        except ValueError:
+            print 'Format %s not recognized... Recording will not be saved!'%format
+            raise # show exception
+            
+        # send command differently depending on # inputs provided
+        if not path:
+            self.send('ET_EVB %d "%s"' % (formatNum,filename))
+        elif duration_ms==0:
+            self.send('ET_EVB %d "%s" "%s"' % (formatNum,filename,path))
+        else:
+            self.send('ET_EVB %d "%s" "%s" %d' % (formatNum,filename,path,duration_ms))
+        
+    def end_movie(self):
+        
+        """Stop recording a movie of the eye and save the file."""
+        
+        # send command to tracker
+        self.send('ET_EVE')
+    
 def prepare(item):
     
     """

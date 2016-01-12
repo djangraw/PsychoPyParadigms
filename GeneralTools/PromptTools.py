@@ -6,9 +6,11 @@
 # Updated 9/8/15 by DJ - added Likert option and RunQuestions_Move.
 # Updated 10/29/15 by DJ - updated distraction/reading task prompts to ask subjects to read top to bottom.
 # Updated 11/9/15 by DJ - added ParsePromptFile function.
+# Updated 1/11/16 by DJ - added fwdKeys input to RunPrompts function
 
 from psychopy import core, event, logging, visual
 import time
+import string
 
 
 # --- PARSE QUESTION FILE INTO QUESTIONS AND OPTIONS --- #
@@ -76,8 +78,9 @@ def ParsePromptFile(filename):
     return (topPrompts,bottomPrompts)
 
 # Display prompts and let the subject page through them one by one.
-def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,backKey='backspace',backPrompt=0):
+def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,fwdKeys=[string.printable],backKeys=['backspace'],backPrompt=0):
     iPrompt = 0
+    
     while iPrompt < len(topPrompts):
         message1.setText(topPrompts[iPrompt])
         message2.setText(bottomPrompts[iPrompt])
@@ -90,10 +93,11 @@ def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,backKey='backspace
         thisKey = event.waitKeys()
         if thisKey[0] in ['q','escape']:
             core.quit()
-        elif thisKey[0] == backKey:
-            iPrompt = backPrompt
-        else:
+        elif thisKey[0] in fwdKeys:
             iPrompt += 1
+        elif thisKey[0] in backKeys:
+            iPrompt = backPrompt
+        
 
 
 # Display questions and let user select each one's answer with a single keypress.
@@ -344,6 +348,8 @@ def GetPrompts(experiment,promptType,params):
                 "In this session, pay attention to ONLY the reading and IGNORE the audio."]
         elif promptType == 'AttendReading_short':
             topPrompts = ["In this session, pay attention to ONLY the reading and IGNORE the audio."]
+        elif promptType == 'AttendReading_switch':
+            topPrompts = ["For the rest of the session, pay attention to ONLY the reading and IGNORE the audio."]        
         elif promptType == 'AttendBoth':
             topPrompts = ["You are about to read the transcript of an academic lecture. At the same time, you will hear audio from a different lecture.",
                 "When the session is over, you'll be asked a few questions about the reading. Questions about the audio will happen at the end of all the sessions.", 
@@ -356,6 +362,8 @@ def GetPrompts(experiment,promptType,params):
                 "In this session, pay attention to BOTH the reading AND the audio."]
         elif promptType == 'AttendBoth_short':
             topPrompts = ["In this session, pay attention to BOTH the reading AND the audio."]
+        elif promptType == 'AttendBoth_switch':
+            topPrompts = ["For the rest of the session, pay attention to BOTH the reading AND the audio."]
         elif promptType == 'AttendLeft':
             topPrompts = ["You are about to read the transcript of an academic lecture. At the same time, you will sometimes hear audio from a different lecture.",
                 "On some trials, a lecture will play in only your left ear. On other trials, a DIFFERENT lecture will play in only your right ear.",

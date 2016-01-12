@@ -25,6 +25,7 @@
 # Updated 4/9/15 by DJ - extreme debugging, borrowing from pylinkwrapper on github
 # Updated 4/10/15 by DJ - switched win units to pixels, general cleanup
 # Updated 12/1/15 by DJ - added optional bgcolor and fgcolor inputs
+# Updated 12/7/15 by DJ - added optional screenToShow and fullScreen inputs
 
 
 from psychopy import visual, sound, event
@@ -43,12 +44,12 @@ script_home = os.path.dirname(sys.argv[0])
 if len(script_home) > 0 : os.chdir(script_home)
     
 class EyeLinkCoreGraphicsPsychoPy(pylink.EyeLinkCustomDisplay):
-    def __init__(self, w, h, tracker,bgcolor=(255,255,255),fgcolor=(0,0,0)):
+    def __init__(self, w, h, tracker,bgcolor=(255,255,255),fgcolor=(0,0,0),screenToShow=0,fullScreen=True):
         pylink.EyeLinkCustomDisplay.__init__(self)
 
         # initialize window
-        fullScreen=True
-        screenToShow=0
+#         fullScreen=True
+#         screenToShow=0
         self.win = visual.Window((w,h), fullscr=fullScreen, allowGUI=False, monitor='testMonitor',screen=screenToShow, units='pix', name='win', color=bgcolor, colorSpace='rgb255')
         self.win.flip(clearBuffer=True)
         
