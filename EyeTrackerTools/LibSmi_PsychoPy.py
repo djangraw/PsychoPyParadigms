@@ -606,13 +606,23 @@ class LibSmi_PsychoPy:
         
     def cleanup(self):
         
-        """Neatly close the tracker"""
+        """<DOC>
+        Neatly close the tracker
+        </DOC>"""
         
         self.tracker.close()
         
-    def start_movie(self, format='XMP4',filename='movie', path='', duration_ms=0):
+    def start_movie(self, format='XMP4',filename='movie', path='', duration_ms=None):
         
-        """Start recording a movie of the eye."""
+        """<DOC>
+        Start recording a movie of the eye.
+        
+        Arguments:
+        format -- a string indicating what type of file should be saved. Acceptable: ['JPG','BMP','XVID','HUFFYUV','ALPARY','XMP4' [default]]
+        filename -- a string indicating the filename where the output should be saved. [default: 'movie']
+        path -- a string indicating where the file should be saved on the iViewX computer. If empty [default], it will be saved in the eyeImages subfolder of the iViewX directory.
+        duration_ms -- an integer indicating how long (in ms) the movie should be. If None [default], keep going until the end_movie function is called.
+        </DOC>"""
         
         # get number for format specifier
         formats=['JPG','BMP','XVID','HUFFYUV','ALPARY','XMP4']
@@ -625,14 +635,16 @@ class LibSmi_PsychoPy:
         # send command differently depending on # inputs provided
         if not path:
             self.send('ET_EVB %d "%s"' % (formatNum,filename))
-        elif duration_ms==0:
+        elif duration_ms is None:
             self.send('ET_EVB %d "%s" "%s"' % (formatNum,filename,path))
         else:
             self.send('ET_EVB %d "%s" "%s" %d' % (formatNum,filename,path,duration_ms))
         
     def end_movie(self):
         
-        """Stop recording a movie of the eye and save the file."""
+        """<DOC>
+        Stop recording a movie of the eye started with start_movie and save the file (with name/options specified in start_movie).
+        </DOC>"""
         
         # send command to tracker
         self.send('ET_EVE')
