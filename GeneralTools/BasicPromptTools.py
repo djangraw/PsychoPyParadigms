@@ -6,8 +6,9 @@
 # Updated 9/8/15 by DJ - added Likert option and RunQuestions_Move.
 # Updated 10/29/15 by DJ - updated distraction/reading task prompts to ask subjects to read top to bottom.
 # Updated 11/9/15 by DJ - added ParsePromptFile function, pared down and renamed to BasicPromptTools.py
+# Updated 11/12/15 by DJ - moved visual package import to fns so it doesn't interfere with parent script's GUI (weird PsychoPy bug)
 
-from psychopy import core, event, logging, visual
+from psychopy import core, event, logging#, visual
 import time
 
 
@@ -157,6 +158,8 @@ def RunQuestions(question_list,options_list,win,message1,message2, name='Questio
 
 # Display questions and let the subject navigate selection up and down before selecting.
 def RunQuestions_Move(question_list,options_list, win, name='Question', questionDur=float('inf'), isEndedByKeypress=True, upKey='up', downKey='down', selectKey='enter'):
+    # import visual package
+    from psychopy import visual
     # set up
     nQuestions = len(question_list)
     allKeys = ['']*nQuestions
