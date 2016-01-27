@@ -1,24 +1,13 @@
 #!/usr/bin/env python2
 """
 LibSmi_PsychoPy.py
-Handles the display, sound, and logic for running calibration and tracking with the SMI tracker.
-Communicates with the tracker via serial port.
+Handles the display, sound, and logic for running calibration and tracking with an SMI tracker.
+Communicates with the tracker via serial port. 
+Adapted from libsmi.py (https://github.com/smathot/libsmi) to use PsychoPy instead of OpenSesame.
+Added validation and manual validation options and custom display and calibration options.
 
-===ORIGINAL CODE (LibSmi.py) INCLUDED THIS TEXT ====
-This file is part of OpenSesame.
-
-OpenSesame is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-OpenSesame is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with OpenSesame.  If not, see <http://www.gnu.org/licenses/>.
+Coded by David Jangraw as part of the PsychoPyParadigms GitHub repository (https://github.com/djangraw/PsychoPyParadigms).
+See https://github.com/djangraw/PsychoPyParadigms/blob/master/README.md for license information.
 """
 # Created 8/19/15 by DJ from libsmi.py (https://github.com/smathot/libsmi)
 #   Added psychopy commands, validate, text, MaxReadTime and abort keys, pause and continue recording
@@ -174,11 +163,6 @@ class LibSmi_PsychoPy:
         w = self.win.size[0]
         h = self.win.size[1]
         
-        # set recording status
-        if save_eye_movie:
-            self.send('ET_EQE 1')
-        else:
-            self.send('ET_EQE 0')
             
         # set calibration parameters
         # ET_CPA [command] [enable]
@@ -200,6 +184,13 @@ class LibSmi_PsychoPy:
         # Start the calibration with default calibration points
         self.send('ET_DEF')
         self.send('ET_CAL %d' % nr_of_pts)
+        
+        # set recording status
+        if save_eye_movie:
+            self.send('ET_EQE 1')
+        else:
+            self.send('ET_EQE 0')
+        
         pts = {}
         while True:
             

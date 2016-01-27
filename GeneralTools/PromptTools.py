@@ -7,6 +7,8 @@
 # Updated 10/29/15 by DJ - updated distraction/reading task prompts to ask subjects to read top to bottom.
 # Updated 11/9/15 by DJ - added ParsePromptFile function.
 # Updated 1/11/16 by DJ - added fwdKeys input to RunPrompts function
+# Updated 1/14/16 by DJ - added returnTimes input to ParseQuestionsAll (extracts pages and times of questions), added 'First' conditions to GetPrompts
+# Updated 1/20/16 by DJ - fixed RunPrompts fwdKeys default
 
 from psychopy import core, event, logging, visual
 import time
@@ -14,11 +16,13 @@ import string
 
 
 # --- PARSE QUESTION FILE INTO QUESTIONS AND OPTIONS --- #
-def ParseQuestionFile(filename,optionsType=None): # optionsType 'Likert' returns the Likert scale for every question's options.
+def ParseQuestionFile(filename,optionsType=None,returnTimes=False): # optionsType 'Likert' returns the Likert scale for every question's options.
     # initialize
     questions_all = []
     answers_all = []
     options_all = []
+    pages_all = []
+    times_all = []
     if optionsType is None:
         options_this = []
     elif optionsType == 'Likert':
@@ -47,11 +51,25 @@ def ParseQuestionFile(filename,optionsType=None): # optionsType 'Likert' returns
                         options_this = [] #reset
                     elif optionsType == 'Likert':
                         options_this = options_likert
+            elif line.startswith("#"): # question header
+                pieces = line.split(',')
+                for piece in pieces:
+                    nameval = piece.split() # split at space
+                    if nameval[0] == 'PAGE':
+                        pages_all.append(nameval[1])
+                    elif nameval[0] == 'TIME':
+                        minsec = nameval[1].split(':')
+                        times_this = int(minsec[0])*60+int(minsec[1])
+                        times_all.append(times_this)
+                    # info[nameval[0]] = nameval[1]
                         
     # make sure last set of options is included
     options_all.append(options_this) 
     # return results
-    return (questions_all,options_all,answers_all)
+    if returnTimes:
+        return (questions_all,options_all,answers_all,pages_all,times_all)
+    else:
+        return (questions_all,options_all,answers_all)
 
 # --- PARSE PROMPT FILE INTO TOP AND BOTTOM PROMPTS --- #
 # Each top prompt should be preceded by a +. Each bottom prompt should be preceded by a -. Everything else will be ignored.
@@ -78,9 +96,13 @@ def ParsePromptFile(filename):
     return (topPrompts,bottomPrompts)
 
 # Display prompts and let the subject page through them one by one.
-def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,fwdKeys=[string.printable],backKeys=['backspace'],backPrompt=0):
+def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,fwdKeys=None,backKeys=['backspace'],backPrompt=0):
     iPrompt = 0
     
+    # declare default for fwdKeys
+    if fwdKeys is None:
+        fwdKeys = [chr(i) for i in xrange(127)]
+        
     while iPrompt < len(topPrompts):
         message1.setText(topPrompts[iPrompt])
         message2.setText(bottomPrompts[iPrompt])
@@ -90,7 +112,7 @@ def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,fwdKeys=[string.pr
         win.logOnFlip(level=logging.EXP, msg='Display Instructions%d'%(iPrompt+1))
         win.flip()
         #check for a keypress
-        thisKey = event.waitKeys()
+        thisKey = event.waitKeys(fwdKeys + backKeys + ['q' 'escape'])
         if thisKey[0] in ['q','escape']:
             core.quit()
         elif thisKey[0] in fwdKeys:
@@ -346,8 +368,17 @@ def GetPrompts(experiment,promptType,params):
 #                "Sometimes during the reading, a question about your attention may appear. When this happens, answer the question using the number keys.",
                 "Between pages, a cross will appear. Look directly at the cross while it's on the screen.",
                 "In this session, pay attention to ONLY the reading and IGNORE the audio."]
+        elif promptType == 'AttendReadingFirst':
+            topPrompts = ["You are about to read the transcript of an academic lecture. At the same time, you will hear audio from a different lecture.",
+                "When the session is over, you'll be asked a few questions about the reading. Questions about the audio will happen at the end of all the sessions.",
+                "Try to read top to bottom without skipping forward or back. Read as quickly as you can while still absorbing the material.",
+                "When you're done reading a page, press the '%s' key to advance to the next one. If you don't advance within %.1f seconds, it will advance automatically. If the text starts to fade, that time is almost up."%(params['pageKey'].upper(),params['maxPageTime']), 
+                "Between pages, a cross will appear. Look directly at the cross while it's on the screen.",
+                "For the first part of this session, pay attention to ONLY the reading and IGNORE the audio."]
         elif promptType == 'AttendReading_short':
             topPrompts = ["In this session, pay attention to ONLY the reading and IGNORE the audio."]
+        elif promptType == 'AttendReadingFirst_short':
+            topPrompts = ["For the first part of this session, pay attention to ONLY the reading and IGNORE the audio."]
         elif promptType == 'AttendReading_switch':
             topPrompts = ["For the rest of the session, pay attention to ONLY the reading and IGNORE the audio."]        
         elif promptType == 'AttendBoth':
@@ -360,8 +391,17 @@ def GetPrompts(experiment,promptType,params):
 #                "Sometimes during the reading, a question about your attention may appear. When this happens, answer the question using the number keys.",
                 "Between pages, a cross will appear. Look directly at the cross while it's on the screen.",
                 "In this session, pay attention to BOTH the reading AND the audio."]
+        elif promptType == 'AttendBothFirst':
+            topPrompts = ["You are about to read the transcript of an academic lecture. At the same time, you will hear audio from a different lecture.",
+                "When the session is over, you'll be asked a few questions about the reading. Questions about the audio will happen at the end of all the sessions.", 
+                "Try to read top to bottom without skipping forward or back. Read as quickly as you can while still absorbing the material.",
+                "When you're done reading a page, press the '%s' key to advance to the next one. If you don't advance within %.1f seconds, it will advance automatically. If the text starts to fade, that time is almost up."%(params['pageKey'].upper(),params['maxPageTime']),  
+                "Between pages, a cross will appear. Look directly at the cross while it's on the screen.",
+                "For the first part of this session, pay attention to BOTH the reading AND the audio."]
         elif promptType == 'AttendBoth_short':
             topPrompts = ["In this session, pay attention to BOTH the reading AND the audio."]
+        elif promptType == 'AttendBothFirst_short':
+            topPrompts = ["For the first part of this session, pay attention to BOTH the reading AND the audio."]
         elif promptType == 'AttendBoth_switch':
             topPrompts = ["For the rest of the session, pay attention to BOTH the reading AND the audio."]
         elif promptType == 'AttendLeft':
