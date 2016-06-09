@@ -370,7 +370,7 @@ def GetPrompts(experiment,promptType,params):
                 "In this session, pay attention to ONLY the reading and IGNORE the audio."]
         elif promptType == 'AttendReadingFirst':
             topPrompts = ["You are about to read the transcript of an academic lecture. At the same time, you will hear audio from a different lecture.",
-                "When the session is over, you'll be asked a few questions about the reading. Questions about the audio will happen at the end of all the sessions.",
+                "When the session is over, you'll be asked a few questions about the reading and audio.",
                 "Try to read top to bottom without skipping forward or back. Read as quickly as you can while still absorbing the material.",
                 "When you're done reading a page, press the '%s' key to advance to the next one. If you don't advance within %.1f seconds, it will advance automatically. If the text starts to fade, that time is almost up."%(params['pageKey'].upper(),params['maxPageTime']), 
                 "Between pages, a cross will appear. Look directly at the cross while it's on the screen.",
@@ -393,7 +393,7 @@ def GetPrompts(experiment,promptType,params):
                 "In this session, pay attention to BOTH the reading AND the audio."]
         elif promptType == 'AttendBothFirst':
             topPrompts = ["You are about to read the transcript of an academic lecture. At the same time, you will hear audio from a different lecture.",
-                "When the session is over, you'll be asked a few questions about the reading. Questions about the audio will happen at the end of all the sessions.", 
+                "When the session is over, you'll be asked a few questions about the reading and audio.", 
                 "Try to read top to bottom without skipping forward or back. Read as quickly as you can while still absorbing the material.",
                 "When you're done reading a page, press the '%s' key to advance to the next one. If you don't advance within %.1f seconds, it will advance automatically. If the text starts to fade, that time is almost up."%(params['pageKey'].upper(),params['maxPageTime']),  
                 "Between pages, a cross will appear. Look directly at the cross while it's on the screen.",

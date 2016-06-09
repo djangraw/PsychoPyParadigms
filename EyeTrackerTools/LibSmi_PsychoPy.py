@@ -18,7 +18,9 @@ See https://github.com/djangraw/PsychoPyParadigms/blob/master/README.md for lice
 # Updated 11/13/15 by DJ - added validation_manual function
 # Updated 11/17/15 by DJ - changed default calibration params to most conservative ones. Updated comments.
 # Updated 1/11/16 by DJ - added start_movie and end_movie functions, added save_eye_movie input to calibrate and run_calibration fns
+# Updated 1/29/16 by DJ - switched from save_eye_movie to eye_movie_filename and eye_movie_format inputs in claibration functions
 
+# import libraries
 import os.path
 import time
 import serial
@@ -139,7 +141,7 @@ class LibSmi_PsychoPy:
         print('received %s'%s)
         return s[:-1] # Strip off the tab and return
                 
-    def calibrate(self, nr_of_pts=13, auto_accept=False, go_fast=False, calib_level=3, save_eye_movie=False):
+    def calibrate(self, nr_of_pts=13, auto_accept=False, go_fast=False, calib_level=3, eye_movie_filename=None, eye_movie_format='XMP4'):
         
         """<DOC>
         Performs calibration procedure
@@ -149,10 +151,15 @@ class LibSmi_PsychoPy:
         auto_accept: Let SMI pick when to accept a point (True) or accept manually on the eye tracker computer (False [default]).
         go_fast: Go quickly from point to point (True) or slower and more precise (False [default]).
         calib_level: calibration check level (0=none,1=weak,2=medium,3=strong [default])
+        eye_movie_filename: a string indicating the filename where the output should be saved. None means no movie will be saved. [default: None]
+        eye_movie_format: a string indicating what type of file should be saved. Acceptable: ['JPG','BMP','XVID','HUFFYUV','ALPARY','XMP4' [default]]
                 
         Exceptions:
         Throws a runtime_error if the calibration fails        
         </DOC>"""
+        
+        if eye_movie_filename is not None:
+            self.start_movie(format=eye_movie_format, filename=eye_movie_filename)
         
         # inform user
         self.text.text = 'Performing %d-point calibration.'%(nr_of_pts)
@@ -186,10 +193,10 @@ class LibSmi_PsychoPy:
         self.send('ET_CAL %d' % nr_of_pts)
         
         # set recording status
-        if save_eye_movie:
-            self.send('ET_EQE 1')
-        else:
-            self.send('ET_EQE 0')
+#        if save_eye_movie:
+#            self.send('ET_EQE 1')
+#        else:
+#            self.send('ET_EQE 0')
         
         pts = {}
         while True:
@@ -227,6 +234,9 @@ class LibSmi_PsychoPy:
             elif cmd[0] == 'ET_CHG':                
                 pt_nr = int(cmd[1])
                 if pt_nr-1 not in pts:
+                    # end and save the eye movie
+                    if eye_movie_filename is not None:
+                        self.end_movie()
                     raise exceptions.runtime_error('Something went wrong during the calibration. Please try again.')
                 x, y = pts[pt_nr-1]
                 # Redraw dot and refresh window
@@ -246,9 +256,13 @@ class LibSmi_PsychoPy:
                 self.text.draw()
                 break
         
+        # end and save the eye movie
+        if eye_movie_filename is not None:
+            self.end_movie()
+        
         # Initially recording is off
         self.stop_recording()
-        
+        # play beep
         if self.useSound:
             self.beep2.play()
             
@@ -425,7 +439,7 @@ class LibSmi_PsychoPy:
         self.win.flip()
         
         
-    def run_calibration(self, nr_of_pts=13, auto_accept=False, go_fast=False, calib_level=3, save_eye_movie=False): # ADDED 8/27/15 BY DJ
+    def run_calibration(self, nr_of_pts=13, auto_accept=False, go_fast=False, calib_level=3, eye_movie_filename=None, eye_movie_format='XMP4'): # ADDED 8/27/15 BY DJ
         
         """<DOC>
         Allows user to select calibration, validation, or proceed to experiment using a keypress.
@@ -435,7 +449,8 @@ class LibSmi_PsychoPy:
         auto_accept: Let SMI pick when to accept a point (True) or accept manually on the eye tracker computer (False [default]).
         go_fast: Go quickly from point to point (True) or slower and more precise (False [default]).
         calib_level: calibration check level (0=none,1=weak,2=medium,3=strong [default])
-        save_eye_movie: save out movie from calibration (true, false [default])
+        eye_movie_filename: a string indicating the filename where the output should be saved. None means no movie will be saved. [default: None]
+        eye_movie_format: a string indicating what type of file should be saved. Acceptable: ['JPG','BMP','XVID','HUFFYUV','ALPARY','XMP4' [default]]
         Calls calibrate, validate.
         
         </DOC>"""
@@ -457,7 +472,7 @@ class LibSmi_PsychoPy:
             elif key[0] == 'c':
                 # Calibrate
                 print("start calibration: %.3f sec"%self.clock.getTime())
-                self.calibrate(nr_of_pts=nr_of_pts, auto_accept=auto_accept, go_fast=go_fast, calib_level=calib_level,save_eye_movie=save_eye_movie)
+                self.calibrate(nr_of_pts=nr_of_pts, auto_accept=auto_accept, go_fast=go_fast, calib_level=calib_level,eye_movie_filename=eye_movie_filename,eye_movie_format=eye_movie_format)
             elif key[0] == 'v':
                 # Validate calibration
                 print("start validation: %.3f sec"%self.clock.getTime())
