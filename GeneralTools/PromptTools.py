@@ -495,6 +495,19 @@ def GetPrompts(experiment,promptType,params):
         bottomPrompts = ["Press any key to continue."]*len(topPrompts) # initialize
         bottomPrompts[-1] = "WHEN YOU'RE READY TO BEGIN, press any key."
         
+    elif experiment.startswith('ColorVigilanceTask'):
+        if promptType == 'Default':
+            # declare default list of prompts
+            topPrompts = ["During this task, a %s dot will display in the middle of the screen. Look at the dot for the duration of the task. When the dot turns %s, press the %c key with your right index finger."%(params['dotColor'],params['targetColor'],params['respKey'].upper()),
+                "Just before and after each block of trials, a cross will appear. Look directly at the cross while it's on the screen."]
+        else:
+            raise Exception('Prompt Type %s not recognized!'%promptType)
+                
+        # declare bottom prompts
+        bottomPrompts = ["Press any key to continue."]*len(topPrompts) # initialize
+        bottomPrompts[-1] = "WHEN YOU'RE READY TO BEGIN, press any key."
+        
+        
     else:
         raise Exception('Experiment %s not recognized!'%experiment)    
     
