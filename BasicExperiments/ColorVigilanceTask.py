@@ -141,7 +141,6 @@ def RunBlock(blockDuration):
     nextOffTime = 0
     nextTargetTime = globalClock.getTime() + np.random.uniform(params['ITI_min'],params['ITI_max'])
     blockEndTime = globalClock.getTime() + blockDuration
-    print(blockEndTime)
     isTarget = True
     frameTime = globalClock.getTime()
     # Change dot if it's time
