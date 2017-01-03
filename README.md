@@ -1,6 +1,6 @@
 # PsychoPyParadigms
 
-Experimental paradigms run with PsychoPy that I’ve accumulated over the past year, including EyeLink and SMI eye tracker interfaces. EyeLink requires the Pylink toolbox, and SMI requires the serial toolbox. The **GazeVis toolbox** (https://github.com/djangraw/GazeVisToolbox) has MATLAB functions to import and analyze the resulting log files from PsychoPy and both eye tracker systems.
+Experimental paradigms run with PsychoPy that I’ve accumulated over the years, including EyeLink and SMI eye tracker interfaces. EyeLink requires the Pylink toolbox, and SMI requires the serial toolbox. The **GazeVis toolbox** (https://github.com/djangraw/GazeVisToolbox) has MATLAB functions to import and analyze the resulting log files from PsychoPy and both eye tracker systems.
 
 **SampleExperiment** represents my current estimate of best practices in logging and timing.
 
@@ -13,6 +13,7 @@ The **BasicExperiments** folder contains several earlier paradigms that I played
 * AudioInterspersedQuestions: play sound file and periodically stop to ask questions.
 * AudtitorySartTask: Implement an audio version of the SART (sustained attention response task) described in Seli 2011 (doi:10.1037/a0025111)
 * BopItTask: Audio-behavior association task based on the game BopIt.
+* ColorVigilanceTask: Simple visual vigilance task where a central fixation dot changes color at random intervals.
 * FlankerTask: Implement the Erikson Flanker Task described in Eichele 2008 (doi: 10.1073/pnas.0708965105)
 * FourLetterTask: Implement a visuospatial working memory task described in Mason et al., Science 2007 (doi: 10.1126/science.1131295)
 * LearnNonsenseWords: Play pairs of nonsense words, then display one and the subject must recall the other (multiple-choice questions)
