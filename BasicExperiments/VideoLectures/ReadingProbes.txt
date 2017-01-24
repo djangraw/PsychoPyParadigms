@@ -1,0 +1,6 @@
+?Just now, what were you thinking about?
+-What I had to do in the task just now \n    (like what the text was saying).
+-Something else happening just now \n    (like the scanner sounds).
+-Something else about the task \n    (like something you read earlier).
+-Something else entirely \n    (like what you had for breakfast).
+-I was asleep.

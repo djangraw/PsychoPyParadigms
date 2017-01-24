@@ -1,4 +1,4 @@
- #!/usr/bin/env python2
+#!/usr/bin/env python2
 """Display multi-page text with simultaneous auditory distractions, recording eye position data using the SMI eye tracker."""
 # DistractionTask_serial_d6.py
 # Created 3/16/15 by DJ based on VidLecTask.py
@@ -19,6 +19,10 @@
 # Updated 10/29/15 by DJ - cleaned up slightly, edited PromptTools to ask subjects not to skip around.
 # Updated 11/11/15 by DJ - added additional calibration parameters (changed name to _d6)
 # Updated 11/12/15 by DJ - switched to 1024x768 (max res of rear projector)
+# Updated 1/11/16 by DJ - made version _d7: stop 't' from advancing prompts, added recordEyeMovie, switchPrompt functionality, 
+#   added 12s (tStartup=2-->8, switchPromptDur=0-->6), added space after 'Display' messages.
+# Updated 1/14/16 by DJ - added audio questions chosen by their times
+# Updated 1/29/16 by DJ-  save out one eye movie for calibration and one for main session
 
 # Import packages
 from psychopy import core, gui, data, event, sound, logging #, visual # visual causes a bug in the guis, so I moved it down.
@@ -40,49 +44,50 @@ from EyeLinkCoreGraphicsPsychoPy import EyeLinkCoreGraphicsPsychoPy
 # ====================== #
 # Save the parameters declared below?
 saveParams = True
-newParamsFilename = 'DistractionParams_serial_d6.pickle'
-expInfoFilename = 'lastDistractionInfo_serial_d6.pickle'
+newParamsFilename = 'DistractionParams_serial_d7-S36.pickle'
+expInfoFilename = 'lastDistractionInfo_serial_d7.pickle'
 
 # Declare primary task parameters.
 params = {
     # FOR INITIAL PILOTS
-    'imagePrefixList': ['Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec07_stretch_gray','Greeks_Lec07_stretch_gray'],
-    'startPageList': [1,31,61,91,1,31], # page where each session should start
-    'endPageList': [30,60,90,120,30,60], # inclusive
-    'readingQuizList':['Lecture02Questions_d4_read1.txt','Lecture02Questions_d4_read2.txt','Lecture02Questions_d4_read3.txt','Lecture02Questions_d4_read4.txt','Lecture07Questions_d3_read1.txt','Lecture07Questions_d3_read2.txt',],
-    'soundFileList': ['Lecture10_40min.wav']*6,
-#    'imagePrefixList': ['Greeks_Lec07_stretch_gray','Greeks_Lec07_stretch_gray','Greeks_Lec10_stretch_gray','Greeks_Lec10_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray'],
-#    'startPageList': [1,31,1,31,61,91], # page where each session should start
-#    'endPageList': [30,60,30,60,90,120], # inclusive
-#    'soundFileList': ['Lecture02_40min.wav']*6,
-#    'readingQuizList':['Lecture07Questions_d3_read1.txt','Lecture07Questions_d3_read2.txt','Lecture10Questions_d4_read1.txt','Lecture10Questions_d4_read2.txt','Lecture02Questions_d4_read3.txt','Lecture02Questions_d4_read4.txt'],
-#    'soundFileList': ['Lecture02_40min.wav']*6,
-    'promptTypeList': ['AttendReading','AttendBoth_short','AttendReading_short','AttendBoth_short','AttendBoth_short','AttendReading_short'],
-    'soundQuizList':['BLANK.txt']*6,
+    'imagePrefixList': ['Greeks_Lec10_stretch_gray','Greeks_Lec10_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray','Greeks_Lec02_stretch_gray'],
+    'startPageList': [1,31,1,31,61,91], # page where each session should start
+    'endPageList': [30,60,30,60,90,120], # inclusive
+#    'startPageList': [1,31,61,91,1,31], # page where each session should start
+#    'endPageList': [30,60,90,120,30,60], # inclusive
+    'readingQuizList':['Lecture10Questions_d4_read1.txt','Lecture10Questions_d4_read2.txt','Lecture02Questions_d4_read1.txt','Lecture02Questions_d4_read2.txt','Lecture02Questions_d4_read3.txt','Lecture02Questions_d4_read4.txt'],
+    'promptTypeList': ['AttendReadingFirst','AttendBothFirst_short','AttendBothFirst_short','AttendReadingFirst_short','AttendReadingFirst_short','AttendBothFirst_short'],
+    'whiteNoiseFile': 'Lecture10_40min_phasescrambled.wav', #'WhiteNoise-7m30s.wav', # this plays when the lecture doesn't.
+    'attendSoundFile': 'Lecture07_cropped.wav', 
+    'ignoreSoundFile': 'Lecture05_cropped.wav',
+    'switchSoundFile': 'EightBeeps.wav',
+    'attendSoundQuiz': 'Lecture07Questions_d3.txt', # 'Lecture10Questions_d4.txt', # 'Lecture05Questions_d1.txt', #
+    'ignoreSoundQuiz': 'Lecture05Questions_d1.txt',
     'quizPromptList':['TestReading_box']*6,
     'probSoundList':[0.5]*6,
     # REST OF PARAMS
-    'skipPrompts': False,    # go right to the scanner-wait page
+    'skipPrompts': False,     # go right to the scanner-wait page
     'maxPageTime': 14,        # max time the subject is allowed to read each page (in seconds)
     'pageFadeDur': 3,         # for the last pageFadeDur seconds, the text will fade to white.
     'IPI': 2,                 # time between when one page disappears and the next appears (in seconds)
     'probSound': 0.5,         # probability that sound will be played on any given page
     'IBI': 1,                 # time between end of block/probe and beginning of next block (in seconds)
-    'tStartup': 2,            # pause time before starting first page
+    'tStartup': 8,            # pause time before starting first page
+    'iSwitchPage': 16,        # page (assuming first page==1) before which condition will switch
+    'switchPromptDur': 6,     # duration of prompt
     'probeDur': 60,           # max time subjects have to answer a Probe Q
     'keyEndsProbe': True,     # will a keypress end the probe?
-    'pageKey': 'b',#'space',       # key to turn page
-    'respKeys': ['g','r','b','y'], # keys to be used for responses (clockwise from 9:00) - "DIAMOND" RESPONSE BOX
+    'pageKey': 'y',#'space',       # key to turn page
+    'respKeys': ['y','b','r','g'], # keys to be used for responses (clockwise from 9:00) - "DIAMOND" RESPONSE BOX
     'wanderKey': 'z',         # key to be used to indicate mind-wandering
     'triggerKey': 't',        # key from scanner that says scan is starting
 # declare image and question files
     'imageDir': 'ReadingImages/',
     'imagePrefix': '', # images must start with this and end with _page<number>.jpg
     'soundDir': 'sounds/',
-    'soundFile': '', # fill in later
     'promptType': '', # fill in later
+    'switchPromptType': '', # fill in later
     'soundVolume': 0.5,
-    'whiteNoiseFile': 'Lecture10_40min_phasescrambled.wav', #'WhiteNoise-7m30s.wav', # this plays when the lecture doesn't.
     'pageRange': [1, 1], # pages (starting from 1) at which reading should start and stop in each block
     'textDir': 'questions/', # directory containing questions and probes
     'probesFile': 'BLANK.txt', #'ReadingProbes_d2.txt', #'ReadingProbes_behavior.txt', #
@@ -93,6 +98,7 @@ params = {
 # declare other stimulus parameters
     'fullScreen': True,       # run in full screen mode?
     'screenToShow': 1,        # display on primary screen (0) or secondary (1)?
+    'screenColor':(128,128,128), # in rgb255 space
     'imageSize': (960,709), # (FOR 1024x768 SCREEN) # in pixels... set to None for exact size of screen    #(1201,945), # (FOR 1280x1024 SCREEN)
     'fixCrossSize': 10,       # size of cross, in pixels
     'fixCrossPos': (-480,354), # (x,y) pos of fixation cross displayed before each page (for drift correction)   #[-600, 472],
@@ -100,11 +106,11 @@ params = {
 # declare serial port & calibration parameters
     'portName': '/dev/tty.usbserial',
     'portBaud': 115200,
-    'screenColor':(128,128,128),
     'calNPoints': 13, # number of points in the calibration (and validation)The number of points to be used for the validation (standard=9)
     'calAutoAccept': False, # Let SMI pick when to accept a point (True [default]) or accept manually (False).
     'calGoFast': False, # Go quickly from point to point (True) or slower and more precise (False [default]).
-    'calCheckLevel': 3 #calibration check level (0=none,1=weak,2=medium,3=strong [default])
+    'calCheckLevel': 3, #calibration check level (0=none,1=weak,2=medium,3=strong [default])
+    'recordEyeMovie': True # record a video of the eye
 }
 
 # save parameters
@@ -131,7 +137,7 @@ try:#try to get a previous parameters file
     expInfo['session'] +=1 # automatically increment session number
     expInfo['paramsFile'] = [expInfo['paramsFile'],'Load...']
 except:#if not there then use a default set
-    expInfo = {'subject':'1', 'session':1, 'skipPrompts':False, 'tSound':0.0, 'paramsFile':['DEFAULT','Load...']}
+    expInfo = {'subject':'1', 'session':1, 'skipPrompts':False, 'tAttendSound':0.0, 'tIgnoreSound':0.0, 'paramsFile':['DEFAULT','Load...']}
 # overwrite if you just saved a new parameter set
 if saveParams:
     expInfo['paramsFile'] = [newParamsFilename,'Load...']
@@ -155,35 +161,37 @@ if expInfo['paramsFile'] not in ['DEFAULT', None]: # otherwise, just use default
 # GET NEW START AND STOP PAGES
 params['pageRange'][0] = params['startPageList'][expInfo['session']-1] # use session-1 as index of list
 params['pageRange'][1] = params['endPageList'][expInfo['session']-1] # use session-1 as index of list
+switchPage = params['pageRange'][0] + params['iSwitchPage'] - 1
 # GET SOUND FILE AND OTHER SESSION-DEPENDENT INFO
-params['soundFile'] = params['soundFileList'][expInfo['session']-1]
 params['promptType'] = params['promptTypeList'][expInfo['session']-1]
 params['imagePrefix'] = params['imagePrefixList'][expInfo['session']-1]
 params['readingQuiz'] = params['readingQuizList'][expInfo['session']-1]
-params['soundQuiz'] = params['soundQuizList'][expInfo['session']-1]
 params['quizPrompt'] = params['quizPromptList'][expInfo['session']-1]
 params['probSound'] = params['probSoundList'][expInfo['session']-1]
-tSound = expInfo['tSound']
+tAttendSound = expInfo['tAttendSound']
+tIgnoreSound = expInfo['tIgnoreSound']
+#keep track of start times
+tAttendSound_start = tAttendSound
+tIgnoreSound_start = tIgnoreSound
 
+# get switchPrompt
+if params['promptType'].startswith('AttendBoth'):
+    condition = 'attend'
+    params['switchPromptType'] = 'AttendReading_switch'
+else:
+    condition = 'ignore'
+    params['switchPromptType'] = 'AttendBoth_switch'
+    
 # transfer skipPrompts
 params['skipPrompts'] = expInfo['skipPrompts']
 
 # read questions and answers from text files
 [questions_reading,options_reading,answers_reading] = PromptTools.ParseQuestionFile(params['textDir']+params['readingQuiz'])
 print('%d questions loaded from %s'%(len(questions_reading),params['readingQuiz']))
-[questions_sound,options_sound,answers_sound] = PromptTools.ParseQuestionFile(params['textDir']+params['soundQuiz'])
-print('%d questions loaded from %s'%(len(questions_sound),params['soundQuiz']))
-# append the two
-questions_all = questions_reading + questions_sound
-options_all = options_reading + options_sound
-answers_all = answers_reading + answers_sound
-# shuffle the order
-newOrder = range(0,len(questions_all))
-random.shuffle(newOrder)
-questions_all = [questions_all[i] for i in newOrder]
-options_all = [options_all[i] for i in newOrder]
-answers_all = [answers_all[i] for i in newOrder]
-params['questionOrder'] = newOrder
+[questions_ignoreSound,options_ignoreSound,answers_ignoreSound,_,times_ignoreSound] = PromptTools.ParseQuestionFile(params['textDir']+params['ignoreSoundQuiz'], returnTimes=True)
+print('%d questions loaded from %s'%(len(questions_ignoreSound),params['ignoreSoundQuiz']))
+[questions_attendSound,options_attendSound,answers_attendSound,_,times_attendSound] = PromptTools.ParseQuestionFile(params['textDir']+params['attendSoundQuiz'], returnTimes=True)
+print('%d questions loaded from %s'%(len(questions_attendSound),params['attendSoundQuiz']))
 
 
 # ========================== #
@@ -226,7 +234,8 @@ logging.log(level=logging.INFO, msg='filename: %s'%filename)
 logging.log(level=logging.INFO, msg='subject: %s'%expInfo['subject'])
 logging.log(level=logging.INFO, msg='session: %s'%expInfo['session'])
 logging.log(level=logging.INFO, msg='date: %s'%dateStr)
-logging.log(level=logging.INFO, msg='tSound: %s'%expInfo['tSound'])
+logging.log(level=logging.INFO, msg='tAttendSound: %s'%expInfo['tAttendSound'])
+logging.log(level=logging.INFO, msg='tIgnoreSound: %s'%expInfo['tIgnoreSound'])
 for key in sorted(params.keys()): # in alphabetical order
     logging.log(level=logging.INFO, msg='%s: %s'%(key,params[key]))
 
@@ -236,7 +245,7 @@ logging.log(level=logging.INFO, msg='---END PARAMETERS---')
 # ========================== #
 
 # Set up serial port by declaring LibSmi object
-myTracker = LibSmi_PsychoPy(experiment='DistractionTask_serial_d4',port=params['portName'], baudrate=params['portBaud'], useSound=True, w=screenRes[0], h=screenRes[1], bgcolor=params['screenColor'],fullScreen=params['fullScreen'],screenToShow=params['screenToShow'])
+myTracker = LibSmi_PsychoPy(experiment='DistractionTask_serial_d7',port=params['portName'], baudrate=params['portBaud'], useSound=True, w=screenRes[0], h=screenRes[1], bgcolor=params['screenColor'],fullScreen=params['fullScreen'],screenToShow=params['screenToShow'])
 print "Port %s isOpen = %d"%(myTracker.tracker.name,myTracker.tracker.isOpen())
 
 
@@ -277,6 +286,9 @@ print('%d probes loaded from %s'%(len(probe_strings),params['probesFile']))
 # Look up prompts
 [topPrompts,bottomPrompts] = PromptTools.GetPrompts(os.path.basename(__file__),params['promptType'],params)
 print('%d prompts loaded from %s'%(len(topPrompts),'PromptTools.py'))
+# Look up prompts
+[topSwitchPrompts,bottomSwitchPrompts] = PromptTools.GetPrompts(os.path.basename(__file__),params['switchPromptType'],params)
+print('%d prompts loaded from %s'%(len(topSwitchPrompts),'PromptTools.py'))
 # Look up question prompts
 [topQuizPrompts,bottomQuizPrompts] = PromptTools.GetPrompts(os.path.basename(__file__),params['quizPrompt'],params)
 print('%d prompts loaded from %s'%(len(topPrompts),'PromptTools.py'))
@@ -284,8 +296,10 @@ print('%d prompts loaded from %s'%(len(topPrompts),'PromptTools.py'))
 
 # declare sound!
 # fullSound = sound.Sound(value='%s%s'%(params['soundDir'], params['soundFile']), volume=params['soundVolume'], name='fullSound')
-pageSound = sound.Sound(value='%s%s'%(params['soundDir'], params['soundFile']), volume=params['soundVolume'], start=tSound, stop=tSound+params['maxPageTime'], name='pageSound')
+attendSound = sound.Sound(value='%s%s'%(params['soundDir'], params['attendSoundFile']), volume=params['soundVolume'], start=tAttendSound, stop=tAttendSound+params['maxPageTime'], name='attendSound')
+ignoreSound = sound.Sound(value='%s%s'%(params['soundDir'], params['ignoreSoundFile']), volume=params['soundVolume'], start=tIgnoreSound, stop=tIgnoreSound+params['maxPageTime'], name='ignoreSound')
 whiteNoiseSound = sound.Sound(value='%s%s'%(params['soundDir'], params['whiteNoiseFile']), volume=params['soundVolume'], start=0, stop=params['maxPageTime'], name='whiteNoiseSound')
+switchSound = sound.Sound(value='%s%s'%(params['soundDir'], params['switchSoundFile']), volume=params['soundVolume'], start=0, name='switchSound')
 
 # ============================ #
 # ======= SUBFUNCTIONS ======= #
@@ -302,7 +316,7 @@ def SetFlipTimeToNow():
 def SendMessage(message):
     # send message preceded by SMI code ET_REM (generic remark) and surround multi-word remarks by quotes(?)
     myTracker.log(message)
-    logging.log(level=logging.INFO,msg=message)
+#    logging.log(level=logging.INFO,msg=message)
 #    pass
     """
     if eyelinktracker is None:
@@ -330,8 +344,7 @@ def ShowPage(iPage, maxPageTime=float('Inf'), pageFadeDur=0, soundToPlay=None):
 #        win.flip(clearBuffer=False)
     # draw & flip
     win.logOnFlip(level=logging.EXP, msg='Display Page%d'%iPage)
-#    win.callOnFlip(SendMessage,'Display Page%d'%iPage)
-    win.callOnFlip(SendMessage,'DisplayPage%d'%iPage) # CHANGED FOR SMI
+    win.callOnFlip(SendMessage,'Display Page%d'%iPage)
     AddToFlipTime(maxPageTime)
 #    win.callOnFlip(SendPortEvent,mod(page,256))
     if params['usePhotodiode']:
@@ -372,21 +385,27 @@ def ShowPage(iPage, maxPageTime=float('Inf'), pageFadeDur=0, soundToPlay=None):
     pylink.endRealTimeMode()
     """
     
+    # return time for which page was shown
+    pageDur = tNextFlip[0] - pageStartTime
+    return pageDur
+
+def ShowFixation(duration=0):
     # Display the fixation cross
-    if params['IPI']>0:
+    if duration>0:
         fixation.draw()
         win.logOnFlip(level=logging.EXP, msg='Display Fixation')
-        win.callOnFlip(SendMessage,'DisplayFixation')
+        win.callOnFlip(SendMessage,'Display Fixation')
+        while (globalClock.getTime()<tNextFlip[0]):
+            core.wait(.01)
+            pass
         if params['usePhotodiode']:
             diodeSquare.draw()
             win.flip()
             # erase diode square and re-draw
             fixation.draw()
         win.flip()
+        AddToFlipTime(duration)
     
-    # return time for which page was shown
-    pageDur = tNextFlip[0] - pageStartTime
-    return pageDur
 
 # Handle end ofeyelink session
 def CoolDown():
@@ -395,7 +414,7 @@ def CoolDown():
     message1.setText("That's the end! ")
     message2.setText("Press 'q' or 'escape' to end the session.")
     win.logOnFlip(level=logging.EXP, msg='Display TheEnd')
-    win.callOnFlip(SendMessage,'DisplayTheEnd')
+    win.callOnFlip(SendMessage,'Display TheEnd')
     message1.draw()
     message2.draw()
     win.flip()
@@ -403,6 +422,8 @@ def CoolDown():
     
     # stop recording via serial port
     myTracker.stop_recording()
+    if params['recordEyeMovie']:
+        myTracker.end_movie()
     
     # save result
     myTracker.save_data(path=(filename+'.idf'))
@@ -439,11 +460,13 @@ def CoolDown():
     
     # stop sound
 #    fullSound.stop()
+    attendSound.stop()
+    ignoreSound.stop()
     whiteNoiseSound.stop()
-    pageSound.stop()
     
     # save experimental info (if we reached here, we didn't have an error)
-    expInfo['tSound'] = tSound
+    expInfo['tAttendSound'] = tAttendSound
+    expInfo['tIgnoreSound'] = tIgnoreSound
     toFile(expInfoFilename, expInfo) # save params to file for next time
     
     # exit
@@ -463,12 +486,17 @@ error = getEYELINK().startRecording(1, 1, 1, 1)
 if error:
     print("===WARNING: eyelink startRecording returned %s"%error)
 """
-# run calibration and validation
-myTracker.run_calibration(nr_of_pts=params['calNPoints'], auto_accept=params['calAutoAccept'], go_fast=params['calGoFast'], calib_level=params['calCheckLevel'])
+# set up eye movie if requested
+if params['recordEyeMovie']:
+    eye_movie_filename = filename + '-calib'
+else:
+    eye_movie_filename = None
+# run calibration and validation    
+myTracker.run_calibration(nr_of_pts=params['calNPoints'], auto_accept=params['calAutoAccept'], go_fast=params['calGoFast'], calib_level=params['calCheckLevel'], eye_movie_filename=eye_movie_filename, eye_movie_format='XMP4')
 
 # display prompts
 if not params['skipPrompts']:
-    PromptTools.RunPrompts(topPrompts,bottomPrompts,win,message1,message2)
+    PromptTools.RunPrompts(topPrompts,bottomPrompts,win,message1,message2,fwdKeys=params['respKeys'])
 
 # wait for scanner
 message1.setText("Waiting for scanner to start...")
@@ -476,26 +504,26 @@ message2.setText("(Press '%c' to override.)"%params['triggerKey'].upper())
 message1.draw()
 message2.draw()
 win.logOnFlip(level=logging.EXP, msg='Display WaitingForScanner')
-win.callOnFlip(SendMessage,'DisplayWaitingForScanner')
+win.callOnFlip(SendMessage,'Display WaitingForScanner')
 win.flip()
-event.waitKeys(keyList=params['triggerKey'])
-tStartSession = globalClock.getTime()
-AddToFlipTime(tStartSession+params['tStartup'])
-
-# start recording via serial port
-myTracker.start_recording(stream=False)
-
 # wait before first stimulus
 fixation.draw()
 win.logOnFlip(level=logging.EXP, msg='Display Fixation')
-win.callOnFlip(SendMessage,'DisplayFixation')
+win.callOnFlip(SendMessage,'Display Fixation')
+event.waitKeys(keyList=params['triggerKey'])
+# display
+tStartSession = globalClock.getTime()
+AddToFlipTime(tStartSession+params['tStartup'])
 win.flip()
 
+# start recording via serial port
+myTracker.start_recording(stream=False)
+if params['recordEyeMovie']:
+    myTracker.start_movie(format='XMP4',filename=filename)
 
 # =========================== #
 # ===== MAIN EXPERIMENT ===== #
 # =========================== #
-
 
 # set up other stuff
 logging.log(level=logging.EXP, msg='---START EXPERIMENT---')
@@ -509,28 +537,62 @@ for iBlock in range(0,nBlocks): # for each block of pages
     logging.log(level=logging.EXP, msg='Start Block %d'%iBlock)
     # display pages
     for iPage in range(params['pageRange'][0],params['pageRange'][1]+1): # +1 to inclue final page
+        
         # decide on sound
         if random.random()<=params['probSound']:
             playSound = True
-            soundToPlay = pageSound
+            if condition is 'attend':
+                soundToPlay = attendSound
+            else:
+                soundToPlay = ignoreSound
         else:
             playSound = False
             soundToPlay = whiteNoiseSound
+            
         # display text
         pageDur = ShowPage(iPage=iPage,maxPageTime=params['maxPageTime'],pageFadeDur=params['pageFadeDur'],soundToPlay=soundToPlay)
+        
         # update sound
         soundToPlay.stop()
         if playSound:
-            tSound += pageDur #params['maxPageTime']
-            logging.log(level=logging.INFO, msg='tSound: %.3f'%tSound)
-            pageSound = sound.Sound(value='%s%s'%(params['soundDir'], params['soundFile']), volume=params['soundVolume'], start=tSound, stop=tSound+params['maxPageTime'], name='pageSound')
+            if condition is 'attend':
+                tAttendSound += pageDur #params['maxPageTime']
+                logging.log(level=logging.INFO, msg='tAttendSound: %.3f'%tAttendSound)
+                attendSound = sound.Sound(value='%s%s'%(params['soundDir'], params['attendSoundFile']), volume=params['soundVolume'], start=tAttendSound, stop=tAttendSound+params['maxPageTime'], name='attendSound')
+            else:
+                tIgnoreSound += pageDur #params['maxPageTime']
+                logging.log(level=logging.INFO, msg='tIgnoreSound: %.3f'%tIgnoreSound)
+                ignoreSound = sound.Sound(value='%s%s'%(params['soundDir'], params['ignoreSoundFile']), volume=params['soundVolume'], start=tIgnoreSound, stop=tIgnoreSound+params['maxPageTime'], name='ignoreSound')            
+        
+        
+        # display switch prompt if it's time
+        if iPage==switchPage-1:
+            message1.setText(topSwitchPrompts[0])
+            message1.draw()
+            while (globalClock.getTime()<tNextFlip[0]):
+                pass
+            win.logOnFlip(level=logging.EXP, msg='Display Switch')
+            win.callOnFlip(SendMessage,'Display Switch')
+            AddToFlipTime(params['switchPromptDur'])
+            # show the page
+            win.flip()
+            # play the sound
+            switchSound.play()
+            # let the sound play (to avoid crackling)
+            core.wait(params['switchPromptDur']-1)
+            # switch the condition
+            if condition is 'attend':
+                condition = 'ignore'
+            else:
+                condition = 'attend'
         
         if iPage < params['pageRange'][1]:
-            # pause
-            AddToFlipTime(params['IPI'])
+            # show fix cross and pause
+            ShowFixation(duration=params['IPI'])
         
     # Mute Sounds
-    pageSound.setVolume(0) # mute but don't stop... save stopping for CoolDown!
+    attendSound.setVolume(0) # mute but don't stop... save stopping for CoolDown!
+    ignoreSound.setVolume(0) # mute but don't stop... save stopping for CoolDown!
     whiteNoiseSound.setVolume(0) # mute but don't stop... save stopping for CoolDown!
     # Pause recording via serial port
     myTracker.pause_recording() # save stop command for CoolDown.
@@ -546,7 +608,7 @@ for iBlock in range(0,nBlocks): # for each block of pages
     message1.setText("It's time for some questions! Then, after a short break, we'll continue reading where you left off.")
     message2.setText("Press any key to end this recording.")
     win.logOnFlip(level=logging.EXP, msg='Display TakeABreak')
-    win.callOnFlip(SendMessage,'DisplayTakeABreak')
+    win.callOnFlip(SendMessage,'Display TakeABreak')
     message1.draw()
     message2.draw()
     # change the screen
@@ -558,9 +620,33 @@ for iBlock in range(0,nBlocks): # for each block of pages
 # ============================ #
 # ========= RUN QUIZ ========= #
 # ============================ #
+
+# crop to sound questions that are in this run
+times_ignoreSound_np = np.asarray(times_ignoreSound)
+times_attendSound_np = np.asarray(times_attendSound)
+iInRun_ignoreSound = np.where(np.logical_and(times_ignoreSound_np>tIgnoreSound_start, times_ignoreSound_np<tIgnoreSound))
+iInRun_ignoreSound = iInRun_ignoreSound[0].tolist()
+iInRun_attendSound = np.where(np.logical_and(times_attendSound_np>tAttendSound_start, times_attendSound_np<tAttendSound))
+iInRun_attendSound = iInRun_attendSound[0].tolist()
+# log which sound questions will be used
+logging.log(level=logging.INFO, msg='ignoreSound questions = ' + str(iInRun_ignoreSound))
+logging.log(level=logging.INFO, msg='attendSound questions = ' + str(iInRun_attendSound))
+# append the reading and sound questions
+questions_all = questions_reading + [questions_ignoreSound[i] for i in iInRun_ignoreSound] + [questions_attendSound[i] for i in iInRun_attendSound]
+options_all = options_reading + [options_ignoreSound[i] for i in iInRun_ignoreSound] + [options_attendSound[i] for i in iInRun_attendSound]
+answers_all = answers_reading + [answers_ignoreSound[i] for i in iInRun_ignoreSound] + [answers_attendSound[i] for i in iInRun_attendSound]
+# shuffle the order
+newOrder = range(0,len(questions_all))
+random.shuffle(newOrder)
+questions_all = [questions_all[i] for i in newOrder]
+options_all = [options_all[i] for i in newOrder]
+answers_all = [answers_all[i] for i in newOrder]
+params['questionOrder'] = newOrder
+logging.log(level=logging.INFO, msg='questionOrder = ' + str(newOrder))
+
 # display prompts
 if not params['skipPrompts']:
-    PromptTools.RunPrompts(topQuizPrompts,bottomQuizPrompts,win,message1,message2)
+    PromptTools.RunPrompts(topQuizPrompts,bottomQuizPrompts,win,message1,message2,fwdKeys=params['respKeys'])
 
 # set up other stuff
 logging.log(level=logging.EXP, msg='---START QUIZ---')

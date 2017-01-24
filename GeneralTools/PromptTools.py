@@ -9,8 +9,9 @@
 # Updated 1/11/16 by DJ - added fwdKeys input to RunPrompts function
 # Updated 1/14/16 by DJ - added returnTimes input to ParseQuestionsAll (extracts pages and times of questions), added 'First' conditions to GetPrompts
 # Updated 1/20/16 by DJ - fixed RunPrompts fwdKeys default
+# Updated 1/24/17 by DJ - removed import of visual
 
-from psychopy import core, event, logging, visual
+from psychopy import core, event, logging#, visual # visual and gui conflict, so don't import it here
 import time
 import string
 
@@ -191,6 +192,7 @@ def RunQuestions_Move(question_list,options_list, win, name='Question', question
     iA = 0
     respKeys=[upKey,downKey,selectKey]
     # make visuals
+    from psychopy import visual
     questionText = visual.TextStim(win, pos=[0,+.5], wrapWidth=1.5, color='#000000', alignHoriz='center', name='questionText', text="aaa",units='norm')
     optionsText = []
     for iResp in range(0,len(options_list[0])):
@@ -341,7 +343,7 @@ def GetPrompts(experiment,promptType,params):
         bottomPrompts[-1] = "WHEN YOU'RE READY TO BEGIN, press any key."
         
         
-    elif experiment.startswith('ReadingTask_dict') or experiment.startswith('ReadingImageTask_eyelink') or experiment.startswith('DistractionTask'):
+    elif experiment.startswith('ReadingTask') or experiment.startswith('ReadingImageTask_eyelink') or experiment.startswith('DistractionTask'):
         if promptType == 'Test':
             # declare default list of prompts
             topPrompts = ["You are about to read the transcript of an academic lecture. Try to absorb as much of the material as you can.",
