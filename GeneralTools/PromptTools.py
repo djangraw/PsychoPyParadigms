@@ -172,12 +172,14 @@ def RunQuestions(question_list,options_list,win,message1,message2, name='Questio
                     iA = respKeys.index(newKey[0]) # convert from key to index in respKeys list
                     allKeys[iQ] = (iA+1, newKey[1]) # make new tuple with answer index and response time
                     # allKeys[iQ] = newKey
-                    iQ +=1
                     if isEndedByKeypress:
+                        iQ +=1
                         endQuestion = True;
         
         if len(newKeys)>0 and newKey[0] in ['q', 'escape']: 
             break # end the loop
+        elif (trialClock.getTime()>=questionDur):
+            iQ += 1 # advance question
     # return result
     return allKeys
 

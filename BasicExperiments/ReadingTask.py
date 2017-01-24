@@ -26,11 +26,11 @@ params = {
     'skipPrompts': False,      # go right to the scanner-wait page
     'pageRanges': [[0, 9],[10,19]],#[[1,210], [210,300], [300,480], [480,660], [660,990], [990,1200]], # pages (starting from 0) at which reading should start and stop in each block
     'maxPageTime': 10,        # max time the subject is allowed to read each page (in seconds)
-    'IPI': 1,                 # time between when one page disappears and the next appears (in seconds)
+    'IPI': 0,                 # time between when one page disappears and the next appears (in seconds)
     'IBI': 1,                 # time between end of block/probe and beginning of next block (in seconds)
     'tStartup': 3,            # pause time before starting first page
     'probeDur': 7,            # max time subjects have to answer a Probe Q
-    'keyEndsProbe': False,    # will a keypress end the probe?
+    'keyEndsProbe': True,    # will a keypress end the probe?
     'pageKey': 'space',       # key to turn page
     'wanderKey': 'z',         # key to be used to indicate mind-wandering
     'triggerKey': 't',        # key from scanner that says scan is starting
@@ -40,6 +40,7 @@ params = {
     'questionsFile': 'DarkAgesQuestions_30min_d2.txt', #'BLANK.txt', # 'DarkAgesQuestions.txt', #
     'probesFile': 'ReadingProbes.txt', # 'BLANK.txt', #
     'promptType': 'Test', # 'Attend', # 'Reverse', #     # option in PromptTools.GetPrompts (options are ['Test','Backwards','Wander','Attend'])
+    'respKeys': ['1','2','3','4','5'], # keys the subject can press in response to the probes
 # declare other stimulus parameters
     'fullScreen': True,       # run in full screen mode?
     'screenToShow': 0,        # display on primary screen (0) or secondary (1)?
@@ -270,7 +271,7 @@ for iBlock in range(0,nBlocks): # for each block of pages
             AddToFlipTime(params['IPI'])
         
     # run probes
-    allKeys = PromptTools.RunQuestions(probe_strings,probe_options,win,message1,message2,'Probe',questionDur=params['probeDur'], isEndedByKeypress=params['keyEndsProbe'])
+    allKeys = PromptTools.RunQuestions(probe_strings,probe_options,win,message1,message2,'Probe',questionDur=params['probeDur'], isEndedByKeypress=params['keyEndsProbe'],respKeys=params['respKeys'])
     # check for escape keypresses
     for thisKey in allKeys:
         if len(thisKey)>0 and thisKey[0] in ['q', 'escape']: # check for quit keys
@@ -294,7 +295,7 @@ for iBlock in range(0,nBlocks): # for each block of pages
     win.flip()
     
 # Display the questions and record the answers.
-allKeys = PromptTools.RunQuestions(questions_all,options_all,win,message1,message2,'Question')
+allKeys = PromptTools.RunQuestions(questions_all,options_all,win,message1,message2,'Question',respKeys=params['respKeys'])
 # check for escape keypresses
 for thisKey in allKeys:
     if len(thisKey)>0 and thisKey[0] in ['q', 'escape']: # check for quit keys
