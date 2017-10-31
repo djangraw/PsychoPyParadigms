@@ -1,0 +1,12 @@
+### Page 1 ###
++You will see a cross and letters on the screen. Please look directly at the center of the screen (the spot where the cross appears) throughout the experiment.
+-Press any button to continue.
+### Page 2 ###
++You will see a string of letters, then instructions indicating what you should do with them. If the instructions say 'REMEMBER', remember them in the order you saw them. If they say 'ALPHABETIZE', alphabetize the letters and and remember them in that order. 
+-Press any button to continue.
+### Page 3 ###
++After a delay period, you will see a question like F=3? If that letter was at that position (for F=3?, if F is the third letter in the list you're remembering), press '1'. Otherwise, press '2'. Respond as quickly and accurately as you can. If you're not sure, take your best guess.
+-Press any button to continue.
+### Page 4 ###
++If you have any questions, please ask the experimenter now.
+-WHEN YOU ARE READY TO BEGIN, press any button.

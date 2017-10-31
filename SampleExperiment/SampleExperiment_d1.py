@@ -57,6 +57,7 @@ if saveParams:
 # ===== SET UP LOGGING ===== #
 # ========================== #
 scriptName = os.path.basename(__file__)
+scriptName = os.path.splitext(scriptName)[0] % remove extension
 try: # try to get a previous parameters file
     expInfo = fromFile('%s-lastExpInfo.pickle'%scriptName)
     expInfo['session'] +=1 # automatically increment session number

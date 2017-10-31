@@ -9,7 +9,8 @@
 # Updated 1/11/16 by DJ - added fwdKeys input to RunPrompts function
 # Updated 1/14/16 by DJ - added returnTimes input to ParseQuestionsAll (extracts pages and times of questions), added 'First' conditions to GetPrompts
 # Updated 1/20/16 by DJ - fixed RunPrompts fwdKeys default
-# Updated 1/24/17 by DJ - removed import of visual
+# Updated 1/24/17 by DJ - removed import of visual, fixed question timeout
+# Updated 3/17/17 by DJ - added SingingTask
 
 from psychopy import core, event, logging#, visual # visual and gui conflict, so don't import it here
 import time
@@ -511,6 +512,61 @@ def GetPrompts(experiment,promptType,params):
         bottomPrompts = ["Press any key to continue."]*len(topPrompts) # initialize
         bottomPrompts[-1] = "WHEN YOU'RE READY TO BEGIN, press any key."
         
+    elif experiment.startswith('SingingTask'):
+        if promptType == 'Default':
+            # declare default list of prompts
+            topPrompts = ["During this task, you will be asked to perform scales, speak, or sing while keeping your head still.",
+                "Just before each exercise, a cross will appear. Look directly at the cross while it's on the screen.",
+                "Before each of these trials, you will see a brief countdown. Please start the scale/speech/song when it reaches 0.",
+                "Once you've started, use the change in numbers as your beat. Stop when the count is over and the cross reappears."]
+        elif promptType == 'CountImagineSing':
+            # declare default list of prompts
+            topPrompts = ["During this task, you will be asked to COUNT along with the beat, IMAGINE singing, or SING while keeping your head still.",
+                "Just before each exercise, a cross will appear. Look directly at the cross while it's on the screen.",
+                "Before each of these exercise, you will see a brief countdown. Please start the exercise when it reaches 0.",
+                "Once you've started, use the change in numbers as your beat. Stop when the count is over and the cross reappears."]
+        else:
+            raise Exception('Prompt Type %s not recognized!'%promptType)
+                
+        # declare bottom prompts
+        bottomPrompts = ["Press any key to continue."]*len(topPrompts) # initialize
+        bottomPrompts[-1] = "WHEN YOU'RE READY TO BEGIN, press any key."
+        
+    elif experiment.startswith('AuditorySequenceTask'):
+        if promptType == 'Default':
+            # declare default list of prompts
+            topPrompts = ["During this task, you will see a fixation cross that changes colors.Look directly at the cross while it's on the screen.",
+                "On each trial, you will feel two sequences of taps on your fingers. After the second sequence, the cross will turn yellow.",
+                "When the cross turns yellow, press %s if the two sequences were the same and %s if they were different."%(params['respKeys'][0],params['respKeys'][1]) ]
+        else:
+            raise Exception('Prompt Type %s not recognized!'%promptType)
+                
+        # declare bottom prompts
+        bottomPrompts = ["Press any key to continue."]*len(topPrompts) # initialize
+        bottomPrompts[-1] = "WHEN YOU'RE READY TO BEGIN, press any key."    
+    
+    elif experiment.startswith('MultiTaskAvWithCheckerboard'):
+        if promptType == 'Default':
+            # declare default list of prompts
+            topPrompts = ["During this task, you will see a fixation cross, words, and checkerboard patterns. Look directly at the center of the screen during the whole run.",
+                "You will also hear sounds. A cue before each block will tell you whether you should respond to the sounds or the written words, and how you should respond.",
+                "Respond AS QUICKLY AS POSSIBLE to the words or sounds according to what the cue asks you to do."]
+        elif promptType == 'Long':
+            # declare default list of prompts
+            topPrompts = ["During this task, you will see a fixation cross, words, and checkerboard patterns. Keep your eyes open and look directly at the center of the screen during the whole run.",
+                "You will also hear sounds. A cue before each block will tell you whether you should respond to the sounds or the written words, and how you should respond.",
+                "'Visual: Button' indicates that you should press a button as soon as you see the fixation cross change into something else. Ignore the checkerboards and sounds.",
+                "'Visual: Add' indicates that you should mentally add all the numbers you see. Keep track in your head until the end of the block, when you will be asked for your count. Ignore the checkerboards and sounds and avoid moving.",
+                "'Audio: Button' indicates that you should press a button as soon as you hear speech. Ignore the checkerboards and text visuals.",
+                "'Audio: Add' indicates that you should mentally add all the numbers you hear. Keep track in your head until the end of the block, when you will be asked for your count. Ignore the checkerboards and text visuals and avoid moving.",
+                "'Rest' indicates that you should ignore all visual and auditory stimuli and think about other things during the block.",
+                "Respond AS QUICKLY AS POSSIBLE to the words or sounds according to what the cue asks you to do."]
+        else:
+            raise Exception('Prompt Type %s not recognized!'%promptType)
+                
+        # declare bottom prompts
+        bottomPrompts = ["Press any key to continue."]*len(topPrompts) # initialize
+        bottomPrompts[-1] = "WHEN YOU'RE READY TO BEGIN, press any key."    
         
     else:
         raise Exception('Experiment %s not recognized!'%experiment)    

@@ -1,0 +1,9 @@
+### Page 1 ###
++You will see a cross and other shapes on the screen. Please look directly at this spot throughout the experiment.
+-Press any button to continue.
+### Page 1 ###
++You will see a circle indicating that a trial is about to begin, then a shape will appear. If the shape is a square, press the button. If the shape is a diamond, do nothing.
+-Press any button to continue.
+### Page 2 ###
++If you have any questions, please ask the experimenter now.
+-WHEN YOU ARE READY TO BEGIN, press any button.
