@@ -6,6 +6,7 @@ letters in their head."""
 # Created 10/05/17 by DJ based on SampleExperiment_d1.py
 # Updated 10/24/17 by DJ - fixed basename, random doubles, logging, escape keys at end
 # Updated 10/31/17 by DJ - switched to 5-button response, added catch trials
+# Updated 11/2/17 by DJ - switched from specified nTrials to max session time, removed extraneous 'true trial' designation
 
 from psychopy import core, gui, data, event, sound, logging 
 # from psychopy import visual # visual causes a bug in the guis, so it's declared after all GUIs run.
@@ -25,25 +26,25 @@ newParamsFilename = 'LetterOrderParams.pickle'
 # Declare primary task parameters.
 params = {
 # Declare stimulus and response parameters
-    'nTrials': 12,            # number of trials in this session
+#    'nTrials': 12,            # number of trials in this session
+    'sessionDur': 300.0,          # max duration of this session, including warm-up and cool-down (in seconds)
     'nLetters': 5,            # number of letters in the string
     'stringDur': 2.5,           # time string is on screen (sec)
     'pauseDur': 1,          # time between string and cue (sec)
     'cueDur': 0.5,              # time instructions (remember/alphabetize) are on screen (sec)
-    'minDelayDur': 12,         # minimum duration of cue-resp delay (seconds)
-    'maxDelayDur': 18,         # maximum duration of cue-resp delay (seconds)
-    'testDur': 1,             # time when test stimulus is presented (in seconds)
-    'minISI': 5,              # min time between when one stimulus disappears and the next appears (in seconds)
-    'maxISI': 10,              # max time between when one stimulus disappears and the next appears (in seconds)
-    'tStartup': 10,            # pause time before starting first stimulus
-    'tCoolDown': 10,           # pause time after end of last stimulus before "the end" text
+    'minDelayDur': 7.0,         # minimum duration of cue-resp delay (seconds)
+    'maxDelayDur': 11.0,         # maximum duration of cue-resp delay (seconds)
+    'testDur': 1.0,             # time when test stimulus is presented (in seconds)
+    'minISI': 7.0,              # min time between when one stimulus disappears and the next appears (in seconds)
+    'maxISI': 11.0,              # max time between when one stimulus disappears and the next appears (in seconds)
+    'tStartup': 10.0,            # pause time before starting first stimulus
+    'tCoolDown': 10.0,           # pause time after end of last stimulus before "the end" text
     'triggerKey': 't',        # key from scanner that says scan is starting
     'respKeys': ['1','2','3','4','5'],           # keys to be used for responses (mapped to positions 1,2,3,4,5)
     'cues':['REMEMBER','ALPHABETIZE'], # strings of instructions for each condition (remember, alphabetize)
     'letters': string.ascii_uppercase, # letters that could be in the string (all uppercase letters)
     'rememberProb': 0.5,      # probability of a given trial being a 'remember' trial
-    'catchProb': 0.5,         # probability of a given trial being a 'catch' trial with no response requested
-    'trueProb': 0.5,          # probability of a given non-catch trial having a 'yes'/'true' response
+    'catchProb': 1.0/3,         # probability of a given trial being a 'catch' trial with no response requested (must have decimal to avoid rounding)
 # declare prompt and question files
     'skipPrompts': False,     # go right to the scanner-wait page
     'promptDir': 'Prompts/',  # directory containing prompts and questions files
@@ -192,15 +193,8 @@ def RunTrial(iTrial):
     # Decide Trial Params
     isRememberTrial = random.random()<params['rememberProb']
     isCatchTrial = random.random()<params['catchProb']
-    if isCatchTrial:
-        isTrueTrial = False;
-    else:
-        isTrueTrial = random.random()<params['trueProb']
     delayDur = random.uniform(params['minDelayDur'], params['maxDelayDur'])
-    if iTrial<(params['nTrials']-1):
-        ISI = random.uniform(params['minISI'], params['maxISI'])
-    else:
-        ISI = params['tCoolDown']
+    ISI = random.uniform(params['minISI'], params['maxISI'])
     startLetters = random.sample(params['letters'], params['nLetters']) # get list of letters to present to subject
     startString = ''.join(startLetters) # turn them into a string
     testLoc = random.randint(0,params['nLetters']-1) # the letter to test the subject on
@@ -208,21 +202,15 @@ def RunTrial(iTrial):
         testLetter = '*' # indicates no response is required.
     else:
         if isRememberTrial:
-            if isTrueTrial:
-                testLetter = startLetters[testLoc];
-            else:
-                testLetter = random.choice(startLetters[:testLoc] + startLetters[testLoc+1:])
+            testLetter = startLetters[testLoc];
         else: # alphabetize!
             sortedLetters = sorted(startLetters)
-            if isTrueTrial:
-                testLetter = sortedLetters[testLoc]
-            else:
-                testLetter = random.choice(sortedLetters[:testLoc] + sortedLetters[testLoc+1:])
+            testLetter = sortedLetters[testLoc]
     testString = '%s?'%(testLetter) 
     
     # display info to experimenter
-    print('trial: iTrial = %d, isRemember = %d, delayDur = %.1f, ISI = %.1f, startString = %s, testLetter = %s, testLoc = %d, isTrueTrial = %d, isCatchTrial = %d'%(iTrial+1,isRememberTrial,delayDur,ISI,startString,testLetter,testLoc+1, isTrueTrial, isCatchTrial)) 
-    logging.log(level=logging.EXP, msg='trial: iTrial = %d, isRemember = %d, delayDur = %.1f, ISI = %.1f, startString = %s, testLetter = %s, testLoc = %d, isTrueTrial = %d, isCatchTrial = %d'%(iTrial+1,isRememberTrial,delayDur,ISI,startString,testLetter,testLoc+1, isTrueTrial,isCatchTrial)) 
+    print('trial: iTrial = %d, isRemember = %d, delayDur = %.1f, ISI = %.1f, startString = %s, testLetter = %s, testLoc = %d, isCatchTrial = %d'%(iTrial+1,isRememberTrial,delayDur,ISI,startString,testLetter,testLoc+1,isCatchTrial)) 
+    logging.log(level=logging.EXP, msg='trial: iTrial = %d, isRemember = %d, delayDur = %.1f, ISI = %.1f, startString = %s, testLetter = %s, testLoc = %d, isCatchTrial = %d'%(iTrial+1,isRememberTrial,delayDur,ISI,startString,testLetter,testLoc+1,isCatchTrial)) 
     
     # Draw letters
     mainText.setText(startString)
@@ -376,11 +364,21 @@ win.flip()
 
 # log experiment start and set up
 logging.log(level=logging.EXP, msg='---START EXPERIMENT---')
-
+maxPossibleTrialDur = params['stringDur'] + params['pauseDur'] + params['cueDur'] + params['maxDelayDur'] + params['testDur'] + params['tCoolDown']
+tLastTrial = tStartSession + params['sessionDur'] - maxPossibleTrialDur
+print maxPossibleTrialDur
+print tLastTrial
+iTrial = 0 # initialize trial number
 # run trials
-for iTrial in range(0,params['nTrials']):
+# for iTrial in range(0,params['nTrials']):
+while (globalClock.getTime() < tLastTrial):
+    # increment trial number
+    iTrial = iTrial+1
     # display text
     RunTrial(iTrial)
+
+# Set flip time to end of session
+tNextFlip[0] = tStartSession + params['sessionDur']
 
 # wait before 'the end' text
 while (globalClock.getTime()<tNextFlip[0]):
