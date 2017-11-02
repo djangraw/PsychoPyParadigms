@@ -30,8 +30,8 @@ params = {
     'sessionDur': 300.0,          # max duration of this session, including warm-up and cool-down (in seconds)
     'nLetters': 5,            # number of letters in the string
     'stringDur': 2.5,           # time string is on screen (sec)
-    'pauseDur': 1,          # time between string and cue (sec)
-    'cueDur': 0.5,              # time instructions (remember/alphabetize) are on screen (sec)
+    'pauseDur': 1.0,          # time between string and cue (sec)
+    'cueDur': 1.0,              # time instructions (remember/alphabetize) are on screen (sec)
     'minDelayDur': 7.0,         # minimum duration of cue-resp delay (seconds)
     'maxDelayDur': 11.0,         # maximum duration of cue-resp delay (seconds)
     'testDur': 1.0,             # time when test stimulus is presented (in seconds)
