@@ -7,6 +7,7 @@ letters in their head."""
 # Updated 10/24/17 by DJ - fixed basename, random doubles, logging, escape keys at end
 # Updated 10/31/17 by DJ - switched to 5-button response, added catch trials
 # Updated 11/2/17 by DJ - switched from specified nTrials to max session time, removed extraneous 'true trial' designation
+# Updated 11/18/17 by DJ - detect keypresses at all times
 
 from psychopy import core, gui, data, event, sound, logging 
 # from psychopy import visual # visual causes a bug in the guis, so it's declared after all GUIs run.
@@ -21,13 +22,13 @@ import random, string # for randomization of trials, letters
 # ====================== #
 # Save the parameters declared below?
 saveParams = True;
-newParamsFilename = 'LetterOrderParams.pickle'
+newParamsFilename = 'LetterOrder_6mLOC.pickle' # 'LetterOrderParams.pickle' # 'LetterOrder_10mRUN.pickle' #
 
 # Declare primary task parameters.
 params = {
 # Declare stimulus and response parameters
 #    'nTrials': 12,             # number of trials in this session
-    'sessionDur': 600.0,#360.0,#          # max duration of this session, including warm-up and cool-down (in seconds)
+    'sessionDur': 360.0,#600.0,#          # max duration of this session, including warm-up and cool-down (in seconds)
     'nLetters': 5,              # number of letters in the string
     'stringDur': 2.5,           # time string is on screen (sec)
     'pauseDur': 1.5,            # time between string and cue (sec)
@@ -35,16 +36,16 @@ params = {
     'minDelayDur': 9.0,        # minimum duration of cue-resp delay (seconds)
     'maxDelayDur': 9.0,        # maximum duration of cue-resp delay (seconds)
     'testDur': 1.0,             # time when test stimulus is presented (in seconds)
-    'minISI': 11.0,#4.5,#              # min time between when one stimulus disappears and the next appears (in seconds)
-    'maxISI': 11.0,#4.5,#              # max time between when one stimulus disappears and the next appears (in seconds)
-    'tStartup': 10.0,#6.0,#            # pause time before starting first stimulus
-    'tCoolDown': 10.0,#9.0,#           # pause time after end of last stimulus before "the end" text
+    'minISI': 5.0,#11.0,#              # min time between when one stimulus disappears and the next appears (in seconds)
+    'maxISI': 5.0,#11.0,#              # max time between when one stimulus disappears and the next appears (in seconds)
+    'tStartup': 6.0,#10.0,#            # pause time before starting first stimulus
+    'tCoolDown': 9.0,#10.0,#           # pause time after end of last stimulus before "the end" text
     'triggerKey': '5',          # key from scanner that says scan is starting
     'respKeys': ['1','2','3','4','6'],           # keys to be used for responses (mapped to positions 1,2,3,4,5)
     'cues':['REMEMBER','ALPHABETIZE'], # strings of instructions for each condition (remember, alphabetize)
     'letters': string.ascii_uppercase, # letters that could be in the string (all uppercase letters)
-    'rememberProb': 0.5,#0.0,#         # probability of a given trial being a 'remember' trial
-    'catchProb': 1.0/3,#0.0,#          # probability of a given trial being a 'catch' trial with no response requested (must have decimal to avoid rounding)
+    'rememberProb': 0.0,#0.5,#         # probability of a given trial being a 'remember' trial
+    'catchProb': 0.0,#1.0/3,#          # probability of a given trial being a 'catch' trial with no response requested (must have decimal to avoid rounding)
 # declare prompt and question files
     'skipPrompts': False,     # go right to the scanner-wait page
     'promptDir': 'Prompts/',  # directory containing prompts and questions files
@@ -84,7 +85,7 @@ except: # if not there then use a default set
         'paramsFile':['DEFAULT','Load...']}
 # overwrite params struct if you just saved a new parameter set
 if saveParams:
-    expInfo['paramsFile'] = [newParamsFilename,'Load...']
+    expInfo['paramsFile'] = [newParamsFilename,'LetterOrder_6mLOC.pickle', 'LetterOrder_10mRUN.pickle', 'Load...']
 
 #present a dialogue to change select params
 dlg = gui.DlgFromDict(expInfo, title=scriptName, order=['subject','session','skipPrompts','paramsFile'])
@@ -186,6 +187,20 @@ def AddToFlipTime(tIncrement=1.0):
 def SetFlipTimeToNow():
     tNextFlip[0] = globalClock.getTime()
 
+def LogAnyKeys(respKey = None):
+    # get new keys
+    newKeys = event.getKeys(keyList=params['respKeys']+[params['triggerKey'],'q','escape'],timeStamped=globalClock)
+    # check each keypress for escape or response keys
+    if len(newKeys)>0:
+        for thisKey in newKeys: 
+            if thisKey[0] in ['q','escape']: # escape keys
+                CoolDown() # exit gracefully
+            elif thisKey[0] in params['respKeys'] and respKey == None: # only take first keypress
+                respKey = thisKey # record keypress
+                print(respKey)
+                logging.log(level=logging.EXP, msg='pressed key %s'%respKey[0])
+    return respKey
+
 def RunTrial(iTrial):
     # Flush the key buffer and mouse movements
     event.clearEvents()
@@ -218,7 +233,7 @@ def RunTrial(iTrial):
     win.logOnFlip(level=logging.EXP, msg='Display string (%s)'%startString)
     # Wait until it's time to display
     while (globalClock.getTime()<tNextFlip[0]):
-        pass
+        LogAnyKeys()
     # log & flip window to display image
     win.flip()
     tStringStart = globalClock.getTime() # record time when window flipped
@@ -230,7 +245,7 @@ def RunTrial(iTrial):
     win.logOnFlip(level=logging.EXP, msg='Display fixation (pause)')
     # Wait until it's time to display
     while (globalClock.getTime()<tNextFlip[0]):
-        pass
+        LogAnyKeys()
     # log & flip window to display image
     win.flip()
     # set up next win flip time after this one
@@ -246,7 +261,7 @@ def RunTrial(iTrial):
     mainText.draw()
     # Wait until it's time to display
     while (globalClock.getTime()<tNextFlip[0]):
-        pass
+        LogAnyKeys()
     # log & flip window to display image
     win.flip()
     tStimStart = globalClock.getTime() # record time when window flipped
@@ -258,7 +273,7 @@ def RunTrial(iTrial):
     win.logOnFlip(level=logging.EXP, msg='Display fixation (delay)')
     # Wait until it's time to display
     while (globalClock.getTime()<tNextFlip[0]):
-        pass
+        LogAnyKeys()
     # log & flip window to display image
     win.flip()
     # set up next win flip time after this one
@@ -270,7 +285,7 @@ def RunTrial(iTrial):
     win.logOnFlip(level=logging.EXP, msg='Display test stim (%s)'%testString)
     # Wait until it's time to display
     while (globalClock.getTime()<tNextFlip[0]):
-        pass
+        LogAnyKeys()
     # log & flip window to display image
     win.flip()
     # set up next win flip time after this one
@@ -283,17 +298,8 @@ def RunTrial(iTrial):
     # Wait for 'testDur' seconds while recording relevant key presses 
     respKey = None
     while (globalClock.getTime()<tNextFlip[0]): # until it's time for the next frame
-        # get new keys
-        newKeys = event.getKeys(keyList=params['respKeys']+[params['triggerKey'],'q','escape'],timeStamped=globalClock)
-        # check each keypress for escape or response keys
-        if len(newKeys)>0:
-            for thisKey in newKeys: 
-                if thisKey[0] in ['q','escape']: # escape keys
-                    CoolDown() # exit gracefully
-                elif thisKey[0] in params['respKeys'] and respKey == None: # only take first keypress
-                    respKey = thisKey # record keypress
-                    print(respKey)
-                    logging.log(level=logging.EXP, msg='pressed key %s'%respKey[0])
+        # get new keypress
+        respKey = LogAnyKeys(respKey)
         
     # Display fixation cross (ISI)
     win.flip()
@@ -301,17 +307,8 @@ def RunTrial(iTrial):
     
     # Keep waiting while recording relevant key presses
     while (globalClock.getTime()<tNextFlip[0] -1 ): # Include -1 to give time for next trial to load
-        # get new keys
-        newKeys = event.getKeys(keyList=params['respKeys']+[params['triggerKey'],'q','escape'],timeStamped=globalClock)
-        # check each keypress for escape or response keys
-        if len(newKeys)>0:
-            for thisKey in newKeys:
-                if thisKey[0] in ['q','escape']: # escape keys
-                    CoolDown() # exit gracefully
-                elif thisKey[0] in params['respKeys'] and respKey == None: # only take first keypress
-                    respKey = thisKey # record keypress
-                    print(respKey)
-                    logging.log(level=logging.EXP, msg='pressed key %s'%respKey[0])
+        # get new keypress
+        respKey = LogAnyKeys(respKey)
     
     return 
 
@@ -319,6 +316,7 @@ def RunTrial(iTrial):
 def CoolDown():
     
     # display cool-down message
+    win.clearBuffer()
     message1.setText("That's the end! ")
     message2.setText("Press 'q' or 'escape' to end the session.")
     win.logOnFlip(level=logging.EXP, msg='Display TheEnd')
@@ -348,13 +346,12 @@ win.logOnFlip(level=logging.EXP, msg='Display WaitingForScanner')
 win.flip()
 event.waitKeys(keyList=params['triggerKey'])
 tStartSession = globalClock.getTime()
-AddToFlipTime(tStartSession+params['tStartup'])
 
-# wait before first stimulus
+# after trigger, draw fixation before first stimulus
 fixation.draw()
 win.logOnFlip(level=logging.EXP, msg='Display fixation')
 win.flip()
-
+AddToFlipTime(tStartSession+params['tStartup'])
 
 
 
@@ -366,11 +363,8 @@ win.flip()
 logging.log(level=logging.EXP, msg='---START EXPERIMENT---')
 maxPossibleTrialDur = params['stringDur'] + params['pauseDur'] + params['cueDur'] + params['maxDelayDur'] + params['testDur'] + params['tCoolDown']
 tLastTrial = tStartSession + params['sessionDur'] - maxPossibleTrialDur
-print maxPossibleTrialDur
-print tLastTrial
 iTrial = 0 # initialize trial number
 # run trials
-# for iTrial in range(0,params['nTrials']):
 while (globalClock.getTime() < tLastTrial):
     # increment trial number
     iTrial = iTrial+1
