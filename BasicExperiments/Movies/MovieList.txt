@@ -1,0 +1,3 @@
+/Users/jangrawdc/Documents/Python/PsychoPyParadigms/BasicExperiments/Movies/Paperman1_10s.mp4
+/Users/jangrawdc/Documents/Python/PsychoPyParadigms/BasicExperiments/Movies/Paperman2_10s.mp4
+/Users/jangrawdc/Documents/Python/PsychoPyParadigms/BasicExperiments/Movies/Paperman3_10s.mp4

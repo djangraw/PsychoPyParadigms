@@ -7,7 +7,7 @@ letters in their head."""
 # Updated 10/24/17 by DJ - fixed basename, random doubles, logging, escape keys at end
 # Updated 10/31/17 by DJ - switched to 5-button response, added catch trials
 # Updated 11/2/17 by DJ - switched from specified nTrials to max session time, removed extraneous 'true trial' designation
-# Updated 11/18/17 by DJ - detect keypresses at all times
+# Updated 11/17/17 by DJ - detect keypresses at all times
 
 from psychopy import core, gui, data, event, sound, logging 
 # from psychopy import visual # visual causes a bug in the guis, so it's declared after all GUIs run.
@@ -21,14 +21,13 @@ import random, string # for randomization of trials, letters
 # ===== PARAMETERS ===== #
 # ====================== #
 # Save the parameters declared below?
-saveParams = True;
-newParamsFilename = 'LetterOrder_6mLOC.pickle' # 'LetterOrderParams.pickle' # 'LetterOrder_10mRUN.pickle' #
+saveParams = False;
+newParamsFilename = 'LetterOrderParams_10mRUN_2p5TR.pickle' # 'LetterOrder_6mLOC.pickle' # 'LetterOrder_10mRUN.pickle' #
 
 # Declare primary task parameters.
 params = {
 # Declare stimulus and response parameters
-#    'nTrials': 12,             # number of trials in this session
-    'sessionDur': 360.0,#600.0,#          # max duration of this session, including warm-up and cool-down (in seconds)
+    'sessionDur': 600.0,#600.0,#          # max duration of this session, including warm-up and cool-down (in seconds)
     'nLetters': 5,              # number of letters in the string
     'stringDur': 2.5,           # time string is on screen (sec)
     'pauseDur': 1.5,            # time between string and cue (sec)
@@ -36,16 +35,16 @@ params = {
     'minDelayDur': 9.0,        # minimum duration of cue-resp delay (seconds)
     'maxDelayDur': 9.0,        # maximum duration of cue-resp delay (seconds)
     'testDur': 1.0,             # time when test stimulus is presented (in seconds)
-    'minISI': 5.0,#11.0,#              # min time between when one stimulus disappears and the next appears (in seconds)
-    'maxISI': 5.0,#11.0,#              # max time between when one stimulus disappears and the next appears (in seconds)
-    'tStartup': 6.0,#10.0,#            # pause time before starting first stimulus
-    'tCoolDown': 9.0,#10.0,#           # pause time after end of last stimulus before "the end" text
+    'minISI': 15.0,#5.0,#              # min time between when one stimulus disappears and the next appears (in seconds)
+    'maxISI': 15.0,#5.0,#              # max time between when one stimulus disappears and the next appears (in seconds)
+    'tStartup': 8.5,#6.0,#            # pause time before starting first stimulus
+    'tCoolDown': 10.0,#9.0,#           # pause time after end of last stimulus before "the end" text
     'triggerKey': '5',          # key from scanner that says scan is starting
     'respKeys': ['1','2','3','4','6'],           # keys to be used for responses (mapped to positions 1,2,3,4,5)
     'cues':['REMEMBER','ALPHABETIZE'], # strings of instructions for each condition (remember, alphabetize)
     'letters': string.ascii_uppercase, # letters that could be in the string (all uppercase letters)
-    'rememberProb': 0.0,#0.5,#         # probability of a given trial being a 'remember' trial
-    'catchProb': 0.0,#1.0/3,#          # probability of a given trial being a 'catch' trial with no response requested (must have decimal to avoid rounding)
+    'rememberProb': 0.5,#0.0,#         # probability of a given trial being a 'remember' trial
+    'catchProb': 1.0/3,#0.0,#          # probability of a given trial being a 'catch' trial with no response requested (must have decimal to avoid rounding)
 # declare prompt and question files
     'skipPrompts': False,     # go right to the scanner-wait page
     'promptDir': 'Prompts/',  # directory containing prompts and questions files
@@ -86,6 +85,8 @@ except: # if not there then use a default set
 # overwrite params struct if you just saved a new parameter set
 if saveParams:
     expInfo['paramsFile'] = [newParamsFilename,'LetterOrder_6mLOC.pickle', 'LetterOrder_10mRUN.pickle', 'Load...']
+else:
+    expInfo['paramsFile'] = ['LetterOrder_6mLOC.pickle', 'LetterOrder_10mRUN.pickle', 'LetterOrderParams_10mRUN_2p5TR.pickle', 'Load...']
 
 #present a dialogue to change select params
 dlg = gui.DlgFromDict(expInfo, title=scriptName, order=['subject','session','skipPrompts','paramsFile'])

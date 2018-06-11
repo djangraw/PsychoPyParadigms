@@ -3,6 +3,7 @@
 Then ask the subject comprehension questions at the end."""
 # PrintPickle.py
 # Created 2/7/15 by DJ based on VidLecTask_dict.py
+# Updated 6/11/18 by DJ - .psydat exeten
 
 # declare packages
 from psychopy import core, gui
@@ -29,7 +30,7 @@ def PrintDict(dict, dictName='pickle'):
 
 # get pickle filename
 dlgResult = gui.fileOpenDlg(prompt='Select parameters file',tryFilePath=os.getcwd(),
-        allowed="PICKLE files (.pickle)|.pickle|All files (.*)|")
+        allowed="PICKLE files (*.psydat);;All files (*.*)")
 
 # load and print pickle file
 if dlgResult is not None: # if they didn't hit cancel

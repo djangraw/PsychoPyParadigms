@@ -568,6 +568,46 @@ def GetPrompts(experiment,promptType,params):
         bottomPrompts = ["Press any key to continue."]*len(topPrompts) # initialize
         bottomPrompts[-1] = "WHEN YOU'RE READY TO BEGIN, press any key."    
         
+    elif experiment.startswith('MovieTask'):
+        if promptType == 'Test':
+            # declare default list of prompts
+            topPrompts = ["You are about to watch a movie. Keep your eyes open and try to absorb as much of the movie as you can.",
+                "When the movie is over, you'll be asked a few questions about it. Answer the questions using the number keys.", 
+                "Just before and after the movie, a cross will appear. Look directly at the cross while it's on the screen."]
+        elif promptType == 'Watch':
+            topPrompts = ["You are about to watch a movie. Keep your eyes open and try to absorb as much of the movie as you can.",
+                "Just before and after the movie, a cross will appear. Look directly at the cross while it's on the screen."]
+        else:
+            raise Exception('Prompt Type %s not recognized!'%promptType)        
+        
+        # declare bottom prompts
+        bottomPrompts = ["Press any key to continue."]*len(topPrompts) # initialize
+        bottomPrompts[-1] = "WHEN YOU'RE READY TO BEGIN, press any key."            
+    
+    elif experiment.startswith('AuditorySpeedReadingTask'):
+        if promptType == 'Default':
+            # declare default list of prompts
+            topPrompts = ["In this run, you will hear a voice reading text. Try to absorb as much of the reading as you can.",
+                "When the reading is over, you'll be asked a few questions about it. Answer the questions using the button box.", 
+                "Throughout the whole run, a cross will appear. Look directly at the cross while it's on the screen."]
+        else:
+            raise Exception('Prompt Type %s not recognized!'%promptType)        
+        
+        # declare bottom prompts
+        bottomPrompts = ["Press any key to continue."]*len(topPrompts) # initialize
+        bottomPrompts[-1] = "WHEN YOU'RE READY TO BEGIN, press any key."            
+    elif experiment.startswith('VisualSpeedReadingTask'):
+        if promptType == 'Default':
+            # declare default list of prompts
+            topPrompts = ["In this run, you will see text flashed in front of you. Try to absorb as much of the reading as you can.",
+                "When the reading is over, you'll be asked a few questions about it. Answer the questions using the button box.", 
+                "Between blocks of text, a cross will appear. Look directly at the cross while it's on the screen."]
+        else:
+            raise Exception('Prompt Type %s not recognized!'%promptType)        
+        
+        # declare bottom prompts
+        bottomPrompts = ["Press any key to continue."]*len(topPrompts) # initialize
+        bottomPrompts[-1] = "WHEN YOU'RE READY TO BEGIN, press any key."            
     else:
         raise Exception('Experiment %s not recognized!'%experiment)    
     

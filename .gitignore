@@ -3,6 +3,12 @@
 
 # Experimental log files:
 *.log
+*.csv
 
 # Parameter files
 *.pickle
+*.psydat
+
+# big files
+*.mp4
+*.mov
