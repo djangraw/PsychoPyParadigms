@@ -12,3 +12,7 @@
 # big files
 *.mp4
 *.mov
+
+# hidden files
+._*
+.DS_Store

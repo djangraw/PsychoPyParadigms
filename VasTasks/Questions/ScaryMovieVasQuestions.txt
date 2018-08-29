@@ -1,0 +1,14 @@
+### QUESTION 1: Nervousness
+?How nervous do you feel right now?
+-Not Nervous
+-Extremely Nervous
+
+### QUESTION 2: Mood
+?How is your mood right now?
+-Best Mood Ever
+-Worst Mood Ever
+
+### QUESTION 3: Worried
+?How worried are you about the next part of the experiment?
+-Not Worried
+-Extremely Worried

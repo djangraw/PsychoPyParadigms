@@ -1,0 +1,9 @@
+### Page 1 ###
++In each trial, you will see a cross followed by a face. Please look directly at the cross and face.
+-Press any button to continue.
+### Page 2 ###
++Each face will be followed by questions about that face. Move the slider back and forth to answer the questions. You have a short time to answer, so move fast!
+-Press any button to continue.
+### Page 3 ###
++If you have any questions, please ask the experimenter now.
+-WHEN YOU ARE READY TO BEGIN, press any button.

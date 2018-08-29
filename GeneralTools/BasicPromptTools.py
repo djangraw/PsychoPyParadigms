@@ -77,7 +77,7 @@ def ParsePromptFile(filename):
     return (topPrompts,bottomPrompts)
 
 # Display prompts and let the subject page through them one by one.
-def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,backKey='backspace',backPrompt=0):
+def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,backKey='backspace',backPrompt=0,name='Instructions'):
     iPrompt = 0
     while iPrompt < len(topPrompts):
         message1.setText(topPrompts[iPrompt])
@@ -85,7 +85,7 @@ def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,backKey='backspace
         #display instructions and wait
         message1.draw()
         message2.draw()
-        win.logOnFlip(level=logging.EXP, msg='Display Instructions%d'%(iPrompt+1))
+        win.logOnFlip(level=logging.EXP, msg='Display %s%d'%(name,iPrompt+1))
         win.flip()
         #check for a keypress
         thisKey = event.waitKeys()
