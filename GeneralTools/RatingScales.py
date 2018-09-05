@@ -6,12 +6,13 @@
 # Updated 8/16/18 by DJ - textColor input
 # Updated 8/22/18 by DJ - added pos and stepSize inputs to ShowVAS
 # Updated 8/28/18 by DJ - added hideMouse and repeatDelay inputs to ShowVAS
+# Updated 9/5/18 by DJ - moved scale text up, added scaleTextPos input to customize it
 
 from psychopy import core, event, logging#, visual # visual and gui conflict, so don't import it here
 import time
 import string
 
-def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float('inf'), isEndedByKeypress=True, upKey='up', downKey='down', selectKey='enter',textColor='black',pos=(0.,0.),stepSize=1.,hideMouse=True,repeatDelay=0.5):
+def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float('inf'), isEndedByKeypress=True, upKey='up', downKey='down', selectKey='enter',textColor='black',pos=(0.,0.),stepSize=1.,hideMouse=True,repeatDelay=0.5, scaleTextPos=[0.,0.45]):
     # make visuals
     from psychopy import visual
     import numpy as np
@@ -51,6 +52,8 @@ def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float(
         for iLabel in range(len(ratingScale.labels)):
             ratingScale.labels[iLabel].wrapWidth = tickWidth
             ratingScale.labels[iLabel].alignHoriz = 'center'
+        # Move main text
+        ratingScale.scaleDescription.pos = scaleTextPos
             
         # Display until time runs out (or key is pressed, if specified)
         win.logOnFlip(level=logging.EXP, msg='Display %s%d'%(name,iQ))

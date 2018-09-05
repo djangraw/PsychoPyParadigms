@@ -3,12 +3,14 @@
 # VasTask.py
 # Created 8/20/18 by DJ.
 # Updated 8/22/18 by DJ - added vasStepSize param to control slider speed
+# Updated 9/5/18 by DJ - removed AppKit calls, updated GUI filters (|-->;;), removed parallel import
 
-from psychopy import visual # visual must be called first to prevent a bug where the movie doesn't appear.
-from psychopy import core, gui, data, event, logging, parallel # sound 
+from psychopy import visual # visual must be called first to prevent a bug where a movie won't appear.
+from psychopy import core, gui, data, event, logging # experiment
 from psychopy.tools.filetools import fromFile, toFile # saving and loading parameter files
 import time as ts, numpy as np # for timing and array operations
-import AppKit, os # for monitor size detection, files
+import os # for monitor size detection, files
+# import AppKit # for monitor size detection (on Macs only)
 import BasicPromptTools # for loading/presenting prompts and questions
 import RatingScales # for VAS sliding scale
 
@@ -16,7 +18,7 @@ import RatingScales # for VAS sliding scale
 # ===== PARAMETERS ===== #
 # ====================== #
 # Save the parameters declared below?
-saveParams = True;
+saveParams = True; # SET THIS TO TRUE IF YOU WANT TO CHANGE PARAMETERS!
 newParamsFilename = 'VasParams.psydat'
 
 # Declare primary task parameters.
@@ -39,7 +41,7 @@ params = {
 # save parameters
 if saveParams:
     dlgResult = gui.fileSaveDlg(prompt='Save Params...',initFilePath = os.getcwd() + '/Params', initFileName = newParamsFilename,
-        allowed="PSYDAT files (.psydat)|.psydat|All files (.*)|")
+        allowed="PSYDAT files (*.psydat);;All files (*.*)")
     newParamsFilename = dlgResult
     if newParamsFilename is None: # keep going, but don't save
         saveParams = False
@@ -72,7 +74,7 @@ if not dlg.OK:
 # find parameter file
 if expInfo['paramsFile'] == 'Load...':
     dlgResult = gui.fileOpenDlg(prompt='Select parameters file',tryFilePath=os.getcwd(),
-        allowed="PSYDAT files (.psydat)|.psydat|All files (.*)|")
+        allowed="PSYDAT files (*.psydat);;All files (*.*)")
     expInfo['paramsFile'] = dlgResult[0]
 # load parameter file
 if expInfo['paramsFile'] not in ['DEFAULT', None]: # otherwise, just use defaults.
@@ -109,15 +111,15 @@ logging.log(level=logging.INFO, msg='---END PARAMETERS---')
 # ========================== #
 
 # kluge for secondary monitor
-if params['fullScreen']: 
-    screens = AppKit.NSScreen.screens()
-    screenRes = (int(screens[params['screenToShow']].frame().size.width), int(screens[params['screenToShow']].frame().size.height))
-#    screenRes = [1920, 1200]
-    if params['screenToShow']>0:
-        params['fullScreen'] = False
-else:
-    screenRes = [800,600]
-
+#if params['fullScreen']: 
+#    screens = AppKit.NSScreen.screens()
+#    screenRes = (int(screens[params['screenToShow']].frame().size.width), int(screens[params['screenToShow']].frame().size.height))
+##    screenRes = [1920, 1200]
+#    if params['screenToShow']>0:
+#        params['fullScreen'] = False
+#else:
+#    screenRes = [800,600]
+screenRes = (1280,760)
 print "screenRes = [%d,%d]"%screenRes
 
 
