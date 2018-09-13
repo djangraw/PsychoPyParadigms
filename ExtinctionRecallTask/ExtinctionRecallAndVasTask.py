@@ -3,12 +3,15 @@
 # ExtinctioRecallAndVasTask.py
 # Created 8/21/18 by DJ.
 # Updated 8/29/18 by DJ - added parallel port triggers, opening prompt, baseline period 
+# Updated 9/5/18 by DJ - commented out AppKit usage for PC compatibility, imported parallel package
 
 # Import packages
 from psychopy import visual, core, gui, data, event, logging # sound 
+from psychopy import parallel # for parallel port event triggers
 from psychopy.tools.filetools import fromFile, toFile # saving and loading parameter files
 import time as ts, numpy as np # for timing and array operations
-import AppKit, os, glob # for monitor size detection, files
+import os, glob # for file manipulation
+#import AppKit # for monitor size detection (Mac only)
 import BasicPromptTools # for loading/presenting prompts and questions
 import random # for randomization of trials
 import RatingScales # for VAS sliding scale
@@ -148,16 +151,17 @@ logging.log(level=logging.INFO, msg='---END PARAMETERS---')
 # ===== GET SCREEN RES ===== #
 # ========================== #
 
-# kluge for secondary monitor
-if params['fullScreen']: 
-    screens = AppKit.NSScreen.screens()
-    screenRes = (int(screens[params['screenToShow']].frame().size.width), int(screens[params['screenToShow']].frame().size.height))
-#    screenRes = [1920, 1200]
-    if params['screenToShow']>0:
-        params['fullScreen'] = False
-else:
-    screenRes = [800,600]
+## kluge for secondary monitor
+#if params['fullScreen']: 
+#    screens = AppKit.NSScreen.screens()
+#    screenRes = (int(screens[params['screenToShow']].frame().size.width), int(screens[params['screenToShow']].frame().size.height))
+##    screenRes = [1920, 1200]
+#    if params['screenToShow']>0:
+#        params['fullScreen'] = False
+#else:
+#    screenRes = [800,600]
 
+screenRes = (1280, 760) 
 print "screenRes = [%d,%d]"%screenRes
 
 

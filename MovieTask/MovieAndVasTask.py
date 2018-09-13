@@ -3,6 +3,7 @@
 # MovieAndVasTask.py
 # Created 8/14-20/18 by DJ.
 # Updated 8/22/18 by DJ - debugged parallel port code for 3TC computer
+# Updated 9/13/18 by DJ - added ignoreKeys parameter to RunPrompts calls (so prompts won't advance with MRI triggers)
 
 from psychopy import visual # visual must be called first to prevent a bug where the movie doesn't appear.
 from psychopy import core, gui, data, event, logging, parallel # sound 
@@ -323,7 +324,7 @@ if params['doStructurals']:
     # Display prompts
     if not params['skipPrompts']:
         win.callOnFlip(SetPortData,data=params['codePrompt'])
-        BasicPromptTools.RunPrompts(topPrompts_structural,bottomPrompts_structural,win,message1,message2,name='structuralPrompt')
+        BasicPromptTools.RunPrompts(topPrompts_structural,bottomPrompts_structural,win,message1,message2,name='structuralPrompt',ignoreKeys=[params['triggerKey']])
     
     # Display VAS
     win.callOnFlip(SetPortData,data=params['codeVas'])
@@ -362,7 +363,7 @@ if params['doRest']:
     # Display prompts
     if not params['skipPrompts']:
         win.callOnFlip(SetPortData,data=params['codePrompt'])
-        BasicPromptTools.RunPrompts(topPrompts_rest,bottomPrompts_rest,win,message1,message2,name='restPrompt')
+        BasicPromptTools.RunPrompts(topPrompts_rest,bottomPrompts_rest,win,message1,message2,name='restPrompt',ignoreKeys=[params['triggerKey']])
     
     # Wait for experimenter and scanner
     win.callOnFlip(SetPortData,data=params['codeWait'])
@@ -397,7 +398,7 @@ if params['doMovie']:
     # Display prompts
     if not params['skipPrompts']:
         win.callOnFlip(SetPortData,data=params['codePrompt'])
-        BasicPromptTools.RunPrompts(topPrompts_movie,bottomPrompts_movie,win,message1,message2,name='moviePrompt')
+        BasicPromptTools.RunPrompts(topPrompts_movie,bottomPrompts_movie,win,message1,message2,name='moviePrompt',ignoreKeys=[params['triggerKey']])
     
     # Wait for experimenter and scanner
     win.callOnFlip(SetPortData,data=params['codeWait'])
@@ -428,7 +429,7 @@ if params['doMovie']:
     # Display prompts
     if not params['skipPrompts']:
         win.callOnFlip(SetPortData,data=params['codePrompt'])
-        BasicPromptTools.RunPrompts(topPrompts_postmovie,bottomPrompts_postmovie,win,message1,message2,name='postMoviePrompt')
+        BasicPromptTools.RunPrompts(topPrompts_postmovie,bottomPrompts_postmovie,win,message1,message2,name='postMoviePrompt',ignoreKeys=[params['triggerKey']])
         
     # Display VAS
     win.callOnFlip(SetPortData,data=params['codeVas'])
@@ -465,7 +466,7 @@ if params['doFinalScan']:
     # Display prompts
     if not params['skipPrompts']:
         win.callOnFlip(SetPortData,data=params['codePrompt'])
-        BasicPromptTools.RunPrompts(topPrompts_final,bottomPrompts_final,win,message1,message2,name='finalPrompt')
+        BasicPromptTools.RunPrompts(topPrompts_final,bottomPrompts_final,win,message1,message2,name='finalPrompt',ignoreKeys=[params['triggerKey']])
         
     # Display VAS
     win.callOnFlip(SetPortData,data=params['codeVas'])

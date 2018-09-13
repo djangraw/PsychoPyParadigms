@@ -7,6 +7,7 @@
 # Updated 10/29/15 by DJ - updated distraction/reading task prompts to ask subjects to read top to bottom.
 # Updated 11/9/15 by DJ - added ParsePromptFile function, pared down and renamed to BasicPromptTools.py
 # Updated 11/12/15 by DJ - moved visual package import to fns so it doesn't interfere with parent script's GUI (weird PsychoPy bug)
+# Updated 9/13/18 by DJ - added ignoreKeys parameter to RunPrompts function (for trigger keys)
 
 from psychopy import core, event, logging#, visual
 import time
@@ -77,7 +78,7 @@ def ParsePromptFile(filename):
     return (topPrompts,bottomPrompts)
 
 # Display prompts and let the subject page through them one by one.
-def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,backKey='backspace',backPrompt=0,name='Instructions'):
+def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,backKey='backspace',backPrompt=0,name='Instructions',ignoreKeys=[]):
     iPrompt = 0
     while iPrompt < len(topPrompts):
         message1.setText(topPrompts[iPrompt])
@@ -93,6 +94,8 @@ def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,backKey='backspace
             core.quit()
         elif thisKey[0] == backKey:
             iPrompt = backPrompt
+        elif thisKey[0] in ignoreKeys:
+            pass # ignore these keys
         else:
             iPrompt += 1
 
