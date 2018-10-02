@@ -1,9 +1,11 @@
 #!/usr/bin/env python2
-"""Display a movie, with VAS ratings of mood before and after."""
+"""Display a movie, with VAS ratings of mood before and after.
+Set audio library to pygame to avoid hanging at the end of the experiment."""
 # MovieAndVasTask.py
 # Created 8/14-20/18 by DJ.
 # Updated 8/22/18 by DJ - debugged parallel port code for 3TC computer
 # Updated 9/13/18 by DJ - added ignoreKeys parameter to RunPrompts calls (so prompts won't advance with MRI triggers)
+# Updated 10/1/18 by DJ - added 'q' and 'escape' as escape characters to every part of the experiment.
 
 from psychopy import visual # visual must be called first to prevent a bug where the movie doesn't appear.
 from psychopy import core, gui, data, event, logging, parallel # sound 
@@ -252,8 +254,14 @@ def PlayMovie():
     while mov.status != visual.FINISHED:
         mov.draw()
         win.flip()
-        if event.getKeys(keyList=['q','escape','space']):
-            break
+        keyList = event.getKeys(keyList=['q','escape','space'])
+        # Check for escape characters
+        for key in keyList:
+            if key in ['q','escape']:
+                CoolDown()
+            else: # 'skip' key
+                mov.status = visual.FINISHED # end the movie early
+        
     pass
 
 def RunVas(questions,options):
@@ -284,8 +292,12 @@ def WaitForScanner():
     message2.draw()
     win.logOnFlip(level=logging.EXP, msg='Display WaitingForPrep')
     win.flip()
-    event.waitKeys(keyList=params['preppedKey'])
-    
+    keyList = event.waitKeys(keyList=[params['preppedKey'],'q','escape'])
+    # Check for escape characters
+    for key in keyList:
+        if key in ['q','escape']:
+            CoolDown()
+            
     # wait for scanner
     message1.setText("Waiting for scanner to start...")
     message2.setText("(Press '%c' to override.)"%params['triggerKey'].upper())
@@ -293,9 +305,12 @@ def WaitForScanner():
     message2.draw()
     win.logOnFlip(level=logging.EXP, msg='Display WaitingForScanner')
     win.flip()
-    event.waitKeys(keyList=params['triggerKey'])
+    keyList = event.waitKeys(keyList=[params['triggerKey'],'q','escape'])
     SetFlipTimeToNow()
-        
+    # Check for escape characters
+    for key in keyList:
+        if key in ['q','escape']:
+            CoolDown()
 
 # Handle end of a session
 def CoolDown():
@@ -309,6 +324,7 @@ def CoolDown():
     win.flip()
     thisKey = event.waitKeys(keyList=['q','escape'])
     
+    print("===Exiting Experiment===")
     # exit
     core.quit()
 
@@ -345,7 +361,8 @@ if params['doStructurals']:
     
     # Wait until it's time to continue
     while (globalClock.getTime()<tNextFlip[0]):
-        pass
+        if event.getKeys(keyList=['q','escape']):
+            CoolDown()
 
 
 # ============================= #
@@ -380,7 +397,8 @@ if params['doRest']:
     
     # Wait until it's time to continue
     while (globalClock.getTime()<tNextFlip[0]):
-        pass
+        if event.getKeys(keyList=['q','escape']):
+            CoolDown()
 
 
 # ============================= #
@@ -415,7 +433,8 @@ if params['doMovie']:
     
     # Wait until it's time to continue
     while (globalClock.getTime()<tNextFlip[0]):
-        pass
+        if event.getKeys(keyList=['q','escape']):
+            CoolDown()
     
     # =========================== #
     # ======= MAIN MOVIE ======== #
@@ -461,7 +480,8 @@ if params['doFinalScan']:
     
     # Wait until it's time to continue
     while (globalClock.getTime()<tNextFlip[0]):
-        pass
+        if event.getKeys(keyList=['q','escape']):
+            CoolDown()
         
     # Display prompts
     if not params['skipPrompts']:
