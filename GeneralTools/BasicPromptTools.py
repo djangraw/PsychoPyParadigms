@@ -8,6 +8,7 @@
 # Updated 11/9/15 by DJ - added ParsePromptFile function, pared down and renamed to BasicPromptTools.py
 # Updated 11/12/15 by DJ - moved visual package import to fns so it doesn't interfere with parent script's GUI (weird PsychoPy bug)
 # Updated 9/13/18 by DJ - added ignoreKeys parameter to RunPrompts function (for trigger keys)
+# Updated 10/11/18 by DJ - prevent RunPrompts from redrawing/logging every time an ignored key is pressed.
 
 from psychopy import core, event, logging#, visual
 import time
@@ -80,24 +81,29 @@ def ParsePromptFile(filename):
 # Display prompts and let the subject page through them one by one.
 def RunPrompts(topPrompts,bottomPrompts,win,message1,message2,backKey='backspace',backPrompt=0,name='Instructions',ignoreKeys=[]):
     iPrompt = 0
+    redraw = True # redraw a new prompt?
     while iPrompt < len(topPrompts):
-        message1.setText(topPrompts[iPrompt])
-        message2.setText(bottomPrompts[iPrompt])
-        #display instructions and wait
-        message1.draw()
-        message2.draw()
-        win.logOnFlip(level=logging.EXP, msg='Display %s%d'%(name,iPrompt+1))
-        win.flip()
+        if redraw:
+            message1.setText(topPrompts[iPrompt])
+            message2.setText(bottomPrompts[iPrompt])
+            #display instructions and wait
+            message1.draw()
+            message2.draw()
+            win.logOnFlip(level=logging.EXP, msg='Display %s%d'%(name,iPrompt+1))
+            win.flip()
         #check for a keypress
         thisKey = event.waitKeys()
         if thisKey[0] in ['q','escape']:
             core.quit()
         elif thisKey[0] == backKey:
             iPrompt = backPrompt
+            redraw = True
         elif thisKey[0] in ignoreKeys:
+            redraw = False
             pass # ignore these keys
         else:
             iPrompt += 1
+            redraw = True
 
 
 # Display questions and let user select each one's answer with a single keypress.

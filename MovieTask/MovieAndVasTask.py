@@ -476,7 +476,7 @@ if params['doFinalScan']:
     win.flip()
     
     # Update time of next stim
-    AddToFlipTime(params['finalScanDur']) # duration of movie + time to reach steady-state
+    AddToFlipTime(params['finalScanDur']) # duration of final scan
     
     # Wait until it's time to continue
     while (globalClock.getTime()<tNextFlip[0]):
