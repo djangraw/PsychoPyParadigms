@@ -1,9 +1,10 @@
 #!/usr/bin/env python2
-"""Display images from a specified folder and present them to the subject."""
+"""Display images to the subject, along with VAS mood questions."""
 # ExtinctioRecallAndVasTask.py
 # Created 8/21/18 by DJ.
 # Updated 8/29/18 by DJ - added parallel port triggers, opening prompt, baseline period 
 # Updated 9/5/18 by DJ - commented out AppKit usage for PC compatibility, imported parallel package
+# Updated 10/12/18 by DJ - fixed expInfo fileOpenDlg 'allowed' parameter format
 
 # Import packages
 from psychopy import visual, core, gui, data, event, logging # sound 
@@ -108,7 +109,7 @@ if not dlg.OK:
 # find parameter file
 if expInfo['paramsFile'] == 'Load...':
     dlgResult = gui.fileOpenDlg(prompt='Select parameters file',tryFilePath=os.getcwd(),
-        allowed="PSYDAT files (.psydat)|.psydat|All files (.*)|")
+        allowed="PSYDAT files (*.psydat);;All files (*.*)")
     expInfo['paramsFile'] = dlgResult[0]
 # load parameter file
 if expInfo['paramsFile'] not in ['DEFAULT', None]: # otherwise, just use defaults.

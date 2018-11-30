@@ -1,0 +1,9 @@
+### Page 1 ###
++Please focus your eyes on the fixation cross at the start of each trial and keep your eyes on the screen during the task.
+-Press any button to continue.
+### Page 2 ###
++When you see an image, press the SPACE key.
+-Press any button to continue.
+### Page 3 ###
++If you have any questions, please ask the experimenter now.
+-WHEN YOU ARE READY TO BEGIN, press any button.
