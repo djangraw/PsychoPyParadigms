@@ -1,0 +1,10 @@
+### Page 1 ###
+
++We are going to test if you can hear the sound now. Click the left button if you hear the sound and click the right button if you do not hear the sound.
+-Press any button to continue.
+
+### Page 2 ###
+
++We are going to play the sound now. Are you ready?
+-Press any button to continue.
+

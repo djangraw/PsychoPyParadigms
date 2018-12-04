@@ -16,3 +16,6 @@
 # hidden files
 ._*
 .DS_Store
+
+# PsychoPy Builder Demos
+PsychoPyBuilderDemos

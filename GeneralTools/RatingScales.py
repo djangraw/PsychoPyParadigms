@@ -7,16 +7,17 @@
 # Updated 8/22/18 by DJ - added pos and stepSize inputs to ShowVAS
 # Updated 8/28/18 by DJ - added hideMouse and repeatDelay inputs to ShowVAS
 # Updated 9/5/18 by DJ - moved scale text up, added scaleTextPos input to customize it
+# Updated 12/3/18 by DJ - switched to custom markerStim, added labelYPos and markerSize as parameters
 
 from psychopy import core, event, logging#, visual # visual and gui conflict, so don't import it here
 import time
 import string
 
-def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float('inf'), isEndedByKeypress=True, upKey='up', downKey='down', selectKey='enter',textColor='black',pos=(0.,0.),stepSize=1.,hideMouse=True,repeatDelay=0.5, scaleTextPos=[0.,0.45]):
-    # make visuals
-    from psychopy import visual
-    import numpy as np
-    from pyglet.window import key
+def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float('inf'), isEndedByKeypress=True, upKey='up', downKey='down', selectKey='enter',textColor='black',pos=(0.,0.),stepSize=1.,hideMouse=True,repeatDelay=0.5, scaleTextPos=[0.,0.45],labelYPos=-0.27648,markerSize=0.1):
+    # import packages
+    from psychopy import visual # for ratingScale
+    import numpy as np # for tick locations
+    from pyglet.window import key # for press-and-hold functionality
     
     # set up
     nQuestions = len(questions_list)
@@ -35,6 +36,8 @@ def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float(
         upKey_attr = '_%s'%upKey
     else:
         upKey_attr = upKey
+    # Make triangle
+    markerStim = visual.ShapeStim(win,lineColor=textColor,fillColor=textColor,vertices=((-markerSize/2.,markerSize*np.sqrt(5./4.)),(markerSize/2.,markerSize*np.sqrt(5./4.)),(0,0)),units='norm',closeShape=True,name='triangle');
         
     # Rating Scale Loop
     for iQ in range(nQuestions):
@@ -42,7 +45,7 @@ def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float(
         tickWidth = (tickLocs[1]-tickLocs[0])*0.9/100 # *.9 for extra space, /100 for norm units
         ratingScale = visual.RatingScale(win, scale=questions_list[iQ], \
             low=0., high=100., markerStart=50., precision=1., labels=options_list[iQ], tickMarks=tickLocs, tickHeight=0.0, \
-            marker='triangle', markerColor=textColor, markerExpansion=1, singleClick=False, disappear=False, \
+            marker=markerStim, markerColor=textColor, markerExpansion=1, singleClick=False, disappear=False, \
             textSize=0.8, textColor=textColor, textFont='Helvetica Bold', showValue=False, \
             showAccept=False, acceptKeys=selectKey, acceptPreText='key, click', acceptText='accept?', acceptSize=1.0, \
             leftKeys=downKey, rightKeys=upKey, respKeys=(), lineColor=textColor, skipKeys=['q','escape'], \
@@ -51,6 +54,7 @@ def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float(
         # Fix text wrapWidth
         for iLabel in range(len(ratingScale.labels)):
             ratingScale.labels[iLabel].wrapWidth = tickWidth
+            ratingScale.labels[iLabel].pos  = (ratingScale.labels[iLabel].pos[0],labelYPos)
             ratingScale.labels[iLabel].alignHoriz = 'center'
         # Move main text
         ratingScale.scaleDescription.pos = scaleTextPos
