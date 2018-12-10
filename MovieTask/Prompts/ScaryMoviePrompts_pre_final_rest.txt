@@ -1,0 +1,4 @@
+### Page 1 ###
+
++For the next scan, please look at the cross on the screen.
+-EXPERIMENTER: Press spacebar to continue.

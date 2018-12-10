@@ -1,3 +1,4 @@
 ### Page 1 ###
-+In a few minutes, we are going to show you a scary movie.\n Other kids have watched it too.
--Pay very close attention. We will ask you some questions about the movie after the scan.
+
++In a few minutes, we are going to show you a scary movie.\n\nOthers have watched it too.
+-EXPERIMENTER: Press spacebar to continue.

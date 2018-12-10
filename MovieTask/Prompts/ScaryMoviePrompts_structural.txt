@@ -1,6 +1,13 @@
 ### Page 1 ###
-+For the next 5 minutes, we'll be taking pictures of your brain. You don't have to do anything, just lie still.
++Welcome to the Movie task!
 -Press any button to advance through screens like this.
+
 ### Page 2 ###
-+If you have any questions, please ask the experimenter now.
--WHEN YOU ARE READY TO BEGIN, press any button.
+
++During the scan, we'll show you some rating scales.\n\nWhen each scale comes up, it's important that you respond according to how you're feeling at that moment.
+-Press any button to continue.
+
+### Page 3 ###
+
++For the next 5 minutes, we'll be taking pictures of your brain. You don't have to do anything, just lie still.
+-But first, let's do some rating scales.

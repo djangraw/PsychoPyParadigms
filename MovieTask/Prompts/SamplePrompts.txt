@@ -1,0 +1,9 @@
+### Page 1 ###
++At the start of each trial, you will see a cross at the center the screen. Please look at the center of the cross.
+-Press any button to continue.
+### Page 2 ###
++Sometimes you will see faces at the center of the screen. Tell us whether the face looks male or female using the buttons.
+-Press any button to continue.
+### Page 3 ###
++If you have any questions, please ask the experimenter now.
+-WHEN YOU ARE READY TO BEGIN, press any button.
