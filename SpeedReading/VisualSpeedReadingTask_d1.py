@@ -50,7 +50,7 @@ params = {
 # save parameters
 if saveParams:
     dlgResult = gui.fileSaveDlg(prompt='Save Params...',initFilePath = os.getcwd() + '/Params', initFileName = newParamsFilename,
-        allowed="PICKLE files (.psydat)|.psydat|All files (.*)|")
+        allowed="PSYDAT files (*.psydat);;All files (*.*)")
     newParamsFilename = dlgResult
     if newParamsFilename is None: # keep going, but don't save
         saveParams = False
@@ -80,7 +80,7 @@ if not dlg.OK:
 # find parameter file
 if expInfo['paramsFile'] == 'Load...':
     dlgResult = gui.fileOpenDlg(prompt='Select parameters file',tryFilePath=os.getcwd(),
-        allowed="PICKLE files (.psydat)|.psydat|All files (.*)|")
+        allowed="PSYDAT files (*.psydat);;All files (*.*)")
     expInfo['paramsFile'] = dlgResult[0]
 # load parameter file
 if expInfo['paramsFile'] not in ['DEFAULT', None]: # otherwise, just use defaults.
