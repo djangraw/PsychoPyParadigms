@@ -3,13 +3,13 @@
 Then ask the subject comprehension questions at the end."""
 # ReadingTask.py
 # Created 3/16/15 by DJ based on VidLecTask.py
-# Updated 1/24/17 by DJ - debugged (removed visual import
+# Updated 1/24/17 by DJ - debugged (removed visual import)
+# Updated 12/17/18 by DJ - removed import PromptTools
 
 from psychopy import core, gui, data, event, sound, logging, visual # visual causes a bug in the guis, so we may want to move it down.
 from psychopy.tools.filetools import fromFile, toFile
 import time, numpy as np
 import AppKit, os # for monitor size detection, files
-import PromptTools
 
 #linesPerPage = 7
 #lineSpacing = 2

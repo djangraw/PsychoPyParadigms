@@ -1,9 +1,10 @@
 #!/usr/bin/env python2
-"""Display text that speeds up over time."""
+"""Display text at speeds that vary linearly over time."""
 
 # VisualSpeedReadingTask_d1.py
 #
 # Created 6/4/18 by DJ based on AuditorySpeedReadingTask_d1.py.
+# Updated 12/31/18 by DJ - modified to allow each block's speeds to be specified separately.
 
 from psychopy import core, gui, data, event, sound, logging #, visual # visual causes a bug in the guis, so I moved it down.
 from psychopy.tools.filetools import fromFile, toFile
@@ -25,18 +26,18 @@ params = {
     # declare timing parameters
     'skipPrompts': False,    # at the beginning
     'promptType': 'Default', # type of prompts (see PromptTools.py)
-    'promptHeight': 3,
+    'promptHeight': 2,
     'tStartup': 3.0,       # time after beginning of scan before starting first trial
     'tCoolDown': 3.0,      # time after end of last trial before end-of-session message
-    'minITI': 10.0,
-    'maxITI': 10.0,
+    'minITI': 5.0,
+    'maxITI': 5.0,
     # declare text parameters
-    'textFiles': ['text/EastOfTheSun.txt','text/ReluctantDragon.txt'],
+    'textFiles': ['text/EastOfTheSun.txt','text/ReluctantDragon.txt','text/BremenTownMusicians.txt'],
     'wordsPerFrame': 1,
     'textHeight': 3,
-    'minFPM': 120,       # frames per minute at start of block
-    'maxFPM': 2000,       # frames per minute at end of block
-    'nFrames': [2004]*2,
+    'minFPM': [120,600,120],       # frames per minute at start of block
+    'maxFPM': [120,600,2000],       # frames per minute at end of block
+    'nFrames': [20, 100,400], # [2004]*2, # number of frames (words) for each block
     # declare other stimulus parameters
     'triggerKey': 't',
     'fullScreen': True,       # run in full screen mode?
@@ -168,7 +169,7 @@ for i in range(0,nTrials):
         allFrames[i].append(" ".join(allWords[i] for i in iWords))
     print('cropped block %d to %d words.'%(i,len(allFrames[i])))
     # calculate inter-frame intervals
-    wpm = np.linspace(params['minFPM'],params['maxFPM'],params['nFrames'][i])
+    wpm = np.linspace(params['minFPM'][i],params['maxFPM'][i],params['nFrames'][i])
     allIFI[i] = 60.0/wpm # inter-frame interval in seconds
 
 # ============================ #
