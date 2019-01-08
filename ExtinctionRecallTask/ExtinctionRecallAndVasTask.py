@@ -8,9 +8,10 @@
 # Updated 11/28/18 by DJ - Debugged DoRun function, added RunMoodVas function and PreFinalVasMsg parameter.
 # Updated 12/3/18 by DJ - added moodVasScreenColor, vasMarkerSize, and vasLabelYDist as parameters
 # Updated 12/19/18 by DJ - split mood VASs into multiple independent files, changed screen colors & spaces, changed fORP keys.
+# Updated 1/8/19 by DJ - added support for "versions" 5-8, added end block/group/run messages, named VASs more descriptively in log
 
 # Import packages
-from psychopy import visual, core, gui, data, event, logging, parallel, sound 
+from psychopy import visual, core, gui, data, event, logging, sound 
 from psychopy.tools.filetools import fromFile, toFile # saving and loading parameter files
 import time as ts, numpy as np # for timing and array operations
 import os, glob # for file manipulation
@@ -104,13 +105,13 @@ scriptName = os.path.splitext(scriptName)[0] # remove extension
 try: # try to get a previous parameters file
     expInfo = fromFile('%s-lastExpInfo.psydat'%scriptName)
     expInfo['session'] +=1 # automatically increment session number
-    expInfo['version'] = ['1','2','3','4']
+    expInfo['version'] = ['1','2','3','4','5','6','7','8']
     expInfo['paramsFile'] = [expInfo['paramsFile'],'Load...']
 except: # if not there then use a default set
     expInfo = {
         'subject':'1', 
         'session': 1, 
-        'version': ['1','2','3','4'], # group determining which stim is CS+
+        'version': ['1','2','3','4','5','6','7','8'], # group determining which stim is CS+
         'skipPrompts':False, 
         'sendPortEvents': True,
         'paramsFile':['DEFAULT','Load...']}
@@ -190,6 +191,7 @@ print "screenRes = [%d,%d]"%screenRes
 # ========================== #
 
 if params['sendPortEvents']:
+    from psychopy import parallel
     port = parallel.ParallelPort(address=params['portAddress'])
     port.setData(0) # initialize to all zeros
 else:
@@ -221,10 +223,10 @@ message2 = visual.TextStim(win, pos=[0,-.6], wrapWidth=1.5, color=params['textCo
 # get stimulus files
 allImages = [params['imageDir'] + name for name in params['imageNames']] # assemble filenames: <imageDir>/<imageNames>.
 # create corresponding names & codes
-if expInfo['version'] in [2,4]:
+if expInfo['version'] in [2,4,6,8]: # if it's one of these versions, first in list params['imageNames'] list is CS+0.
     allCodes = range(1,len(allImages)+1)
     allNames = ['CSplus0','CSplus25','CSplus50','CSplus75','CSplus100']
-else: # if it's version 1 or 3, reverse order
+else: # if it's version 1, 3, 5, or 7, reverse order
     allCodes = range(len(allImages),0,-1)
     allNames = ['CSplus100','CSplus75','CSplus50','CSplus25','CSplus0']
     
@@ -361,7 +363,7 @@ def ShowImage(imageFile, stimDur=float('Inf'),imageName='image'):
     
 
 # Run a set of visual analog scale (VAS) questions
-def RunVas(questions,options,pos=(0.,-.5),scaleTextPos=[0.,-0.3],questionDur=params['questionDur'],isEndedByKeypress=params['questionSelectAdvances']):
+def RunVas(questions,options,pos=(0.,-.5),scaleTextPos=[0.,-0.3],questionDur=params['questionDur'],isEndedByKeypress=params['questionSelectAdvances'],name='Vas'):
     
     # wait until it's time
     WaitForFlipTime()
@@ -369,7 +371,7 @@ def RunVas(questions,options,pos=(0.,-.5),scaleTextPos=[0.,-0.3],questionDur=par
     # Show questions and options
     [rating,decisionTime,choiceHistory] = RatingScales.ShowVAS(questions,options, win, questionDur=questionDur, \
         upKey=params['questionUpKey'], downKey=params['questionDownKey'], selectKey=params['questionSelectKey'],\
-        isEndedByKeypress=isEndedByKeypress, textColor=params['vasTextColor'], name='Vas', pos=pos,\
+        isEndedByKeypress=isEndedByKeypress, textColor=params['vasTextColor'], name=name, pos=pos,\
         scaleTextPos=scaleTextPos, labelYPos=pos[1]-params['vasLabelYDist'], markerSize=params['vasMarkerSize'])
     
     # Update next stim time
@@ -380,8 +382,7 @@ def RunVas(questions,options,pos=(0.,-.5),scaleTextPos=[0.,-0.3],questionDur=par
 
 
 
-def RunMoodVas(questions,options):
-    
+def RunMoodVas(questions,options,name='MoodVas'):
     
     # Wait until it's time
     WaitForFlipTime()
@@ -395,7 +396,7 @@ def RunMoodVas(questions,options):
     
     # Display this VAS
     win.callOnFlip(SetPortData,data=params['codeVas'])
-    RunVas(questions,options,pos=(0,0.),scaleTextPos=[0,0.5],questionDur=float("inf"), isEndedByKeypress=True)
+    RunVas(questions,options,pos=(0,0.),scaleTextPos=[0,0.5],questionDur=float("inf"), isEndedByKeypress=True,name=name)
     
     # Set screen color back
     win.color = params['screenColor']
@@ -439,7 +440,7 @@ def DoRun(allImages,allCodes,allNames):
         for iBlock in range(params['nBlocksPerGroup']):
             
             # Log state of experiment
-            logging.log(level=logging.EXP,msg='=== START BLOCK %d/%d ==='%(iBlock+1,params['nBlocksPerGroup']))
+            logging.log(level=logging.EXP,msg='=== START BLOCK %d/%d TYPE %d ==='%(iBlock+1,params['nBlocksPerGroup'],blockOrder[iBlock]))
             
             # randomize order of images and codes the same way
             ziplist = list(zip(allImages, allCodes, allNames))
@@ -461,7 +462,7 @@ def DoRun(allImages,allCodes,allNames):
                 # Display VAS
                 portCode = len(allCodes)*(blockOrder[iBlock]+2) + allCodes[iTrial]
                 win.callOnFlip(SetPortData,data=portCode)
-                RunVas([questions[blockOrder[iBlock]]],[options[blockOrder[iBlock]]])
+                RunVas([questions[blockOrder[iBlock]]],[options[blockOrder[iBlock]]],name='ImageRating')
                 # Remove image
                 stimImage.autoDraw = False
                 
@@ -476,6 +477,15 @@ def DoRun(allImages,allCodes,allNames):
                     # VAS keeps control to the end, so no need to wait for flip time
                     win.flip()
                     AddToFlipTime(tIsi)
+                    
+            # Log state of experiment
+            logging.log(level=logging.EXP,msg='=== END BLOCK %d/%d TYPE %d ==='%(iBlock+1,params['nBlocksPerGroup'],blockOrder[iBlock]))
+            
+        # Log state of experiment
+        logging.log(level=logging.EXP,msg='==== END GROUP %d/%d ===='%(iGroup+1,params['nGroupsPerRun']))
+    
+    # Log state of experiment
+    logging.log(level=logging.EXP,msg='===== END RUN =====')
 
 
 def DoDummyRun():
@@ -503,6 +513,8 @@ def DoDummyRun():
     win.flip()
     AddToFlipTime(params['tDummyRun'])
     
+    # Log state of experiment
+    logging.log(level=logging.EXP,msg='===== END DUMMY RUN =====')
 
 
 # Handle end of a session
@@ -536,7 +548,7 @@ event.globalKeys.add(key='q', modifiers=['ctrl'], func=CoolDown)
 logging.log(level=logging.EXP, msg='---START EXPERIMENT---')
 
 # ---VAS
-RunMoodVas(questions_vas1,options_vas1)
+RunMoodVas(questions_vas1,options_vas1,name='PreSoundCheck')
 
 # ---Instructions
 # display prompts
@@ -566,7 +578,7 @@ if thisKey[0] in ['q','escape']: # quit if excape keypress
 DoRun(allImages,allCodes,allNames)
 
 # ---VAS
-RunMoodVas(questions_vas2,options_vas2)
+RunMoodVas(questions_vas2,options_vas2,name='PostRun1')
 
 # ---break (60s)
 # display break prompt
@@ -585,7 +597,7 @@ WaitForFlipTime()
 DoRun(allImages,allCodes,allNames)
 
 # ---VAS
-RunMoodVas(questions_vas3,options_vas3)
+RunMoodVas(questions_vas3,options_vas3,name='PostRun2')
 
 # ---dummyRun (30s)
 DoDummyRun()
@@ -597,7 +609,7 @@ if not params['skipPrompts']:
     BasicPromptTools.RunPrompts([params['PreFinalVasMsg']],["Press any button to continue."],win,message1,message2)
 
 # ---VAS
-RunMoodVas(questions_vas4,options_vas4)
+RunMoodVas(questions_vas4,options_vas4,name='PostDummyRun')
 
 # Log end of experiment
 logging.log(level=logging.EXP, msg='--- END EXPERIMENT ---')
