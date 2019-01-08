@@ -25,3 +25,7 @@
 ?How much do you feel like doing \nthe next part of the experiment? 
 -Very much
 -Not much at all
+### QUESTION 6: What If
+?How worried would you feel if what \nyou feared most in this task came true?
+-Not worried 
+-Very worried

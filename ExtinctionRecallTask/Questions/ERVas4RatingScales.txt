@@ -25,3 +25,7 @@
 ?How much do you feel like doing \nthe next part of the experiment? 
 -Very much
 -Not much at all
+### QUESTION 6: What If
+?Think about what you feared most \nin this task. How was it really?  
+-Not bad 
+-Very bad 

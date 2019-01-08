@@ -7,6 +7,7 @@
 #    6-10 in block type 2, image code + 10 for face rating, 31 and 32 for baseline and mood rating VAS.
 # Updated 11/28/18 by DJ - Debugged DoRun function, added RunMoodVas function and PreFinalVasMsg parameter.
 # Updated 12/3/18 by DJ - added moodVasScreenColor, vasMarkerSize, and vasLabelYDist as parameters
+# Updated 12/19/18 by DJ - split mood VASs into multiple independent files, changed screen colors & spaces, changed fORP keys.
 
 # Import packages
 from psychopy import visual, core, gui, data, event, logging, parallel, sound 
@@ -40,6 +41,7 @@ params = {
     'tIsiMax': 6.,          # max time between when one stimulus disappears and the next appears (in seconds)
     'tBreak': 60,           # duration of break between runs
     'tDummyRun': 30,        # duration of dummy run at end
+    'fixCrossDur': 20.,     # duration of cross fixation before each run
 # Declare stimulus and response parameters
     'preppedKey': 'y',         # key from experimenter that says scanner is ready
     'triggerKey': '5',        # key from scanner that says scan is starting
@@ -55,10 +57,13 @@ params = {
     'PreFinalVasMsg': "We're done!", # text shown before final VAS
 # declare VAS info
     'faceQuestionFile': 'Questions/ERFaceRatingScales.txt', # Name of text file containing image Q&As
-    'moodQuestionFile': 'Questions/ERVasRatingScales.txt', # Name of text file containing mood Q&As
-    'questionDownKey': '1',
-    'questionUpKey':'2',
-    'questionSelectKey':'3',
+    'moodQuestionFile1': 'Questions/ERVas1RatingScales.txt', # Name of text file containing mood Q&As presented before sound check
+    'moodQuestionFile2': 'Questions/ERVasRatingScales.txt', # Name of text file containing mood Q&As presented after 1st run
+    'moodQuestionFile3': 'Questions/ERVasRatingScales.txt', # Name of text file containing mood Q&As presented after 2nd run
+    'moodQuestionFile4': 'Questions/ERVas4RatingScales.txt', # Name of text file containing mood Q&As presented after final dummy run
+    'questionDownKey': '4', # red on fORP
+    'questionUpKey':'2', # yellow on fORP
+    'questionSelectKey':'3', # green on fORP
     'questionSelectAdvances': False,
 # sound info
     'badSoundFile': "media/tone_noise_rany.wav",
@@ -72,9 +77,9 @@ params = {
     'screenToShow': 0,        # display on primary screen (0) or secondary (1)?
     'fixCrossSize': 50,       # size of cross, in pixels
     'fixCrossPos': [0,0],     # (x,y) pos of fixation cross displayed before each stimulus (for gaze drift correction)
-    'screenColor':(0,0,0),    # in rgb space: (r,g,b) all between -1 and 1
+    'screenColor':(120,120,120),    # (120,120,120) in rgb space: (r,g,b) all between 0 and 255
     'textColor': (-1,-1,-1),  # color of text outside of VAS
-    'moodVasScreenColor': (0,0.2,1.0),  # background behind mood VAS and its pre-VAS prompt. Ideally luminance-matched to screen color, keep in mind gamma correction Y = 0.2126 * R + 0.7152 * G + 0.0722 * B
+    'moodVasScreenColor': (110,110,200),  # background behind mood VAS and its pre-VAS prompt. Ideally luminance-matched to screen color via luminance meter/app, else keep in mind gamma correction Y = 0.2126 * R + 0.7152 * G + 0.0722 * B
     'vasTextColor': (-1,-1,-1), # color of text in both VAS types (-1,-1,-1) = black
     'vasMarkerSize': 0.1,     # in norm units (2 = whole screen)
     'vasLabelYDist': 0.1,     # distance below line that VAS label/option text should be, in norm units
@@ -122,7 +127,7 @@ expInfo['paramsFile'] = ''.join(expInfo['paramsFile']) # convert from list of ch
 # find parameter file
 if expInfo['paramsFile'] == 'Load...':
     dlgResult = gui.fileOpenDlg(prompt='Select parameters file',tryFilePath=os.getcwd(),
-        allowed="PSYDAT files (.psydat)|.psydat|All files (.*)|")
+        allowed="PSYDAT files (*.psydat);;All files (*.*)")
     expInfo['paramsFile'] = dlgResult[0]
 # load parameter file
 if expInfo['paramsFile'] not in ['DEFAULT', None]: # otherwise, just use defaults.
@@ -201,14 +206,16 @@ tNextFlip = [0.0] # put in a list to make it mutable (weird quirk of python vari
 #create clocks and window
 globalClock = core.Clock()#to keep track of time
 trialClock = core.Clock()#to keep track of time
-win = visual.Window(screenRes, fullscr=params['fullScreen'], allowGUI=False, monitor='testMonitor', screen=params['screenToShow'], units='deg', name='win',color=params['screenColor'])
+win = visual.Window(screenRes, fullscr=params['fullScreen'], allowGUI=False, monitor='testMonitor', screen=params['screenToShow'], units='deg', name='win',color=params['screenColor'],colorSpace='rgb255')
 # create fixation cross
 fCS = params['fixCrossSize'] # size (for brevity)
 fCP = params['fixCrossPos'] # position (for brevity)
 lineWidth = int(params['fixCrossSize']/3)
 fixation = visual.ShapeStim(win,lineColor=params['textColor'],lineWidth=lineWidth,vertices=((fCP[0]-fCS/2,fCP[1]),(fCP[0]+fCS/2,fCP[1]),(fCP[0],fCP[1]),(fCP[0],fCP[1]+fCS/2),(fCP[0],fCP[1]-fCS/2)),units='pix',closeShape=False,name='fixCross');
+duration = params['fixCrossDur'] # duration (for brevity)
+
 # create text stimuli
-message1 = visual.TextStim(win, pos=[0,+.6], wrapWidth=1.5, color=params['textColor'], alignHoriz='center', name='topMsg', text="aaa",units='norm')
+message1 = visual.TextStim(win, pos=[0,+.4], wrapWidth=1.5, color=params['textColor'], alignHoriz='center', name='topMsg', text="aaa",units='norm')
 message2 = visual.TextStim(win, pos=[0,-.6], wrapWidth=1.5, color=params['textColor'], alignHoriz='center', name='bottomMsg', text="bbb",units='norm')
 
 # get stimulus files
@@ -244,8 +251,17 @@ print('%d prompts loaded from %s'%(len(topPrompts),params['PreSoundCheckFile']))
 [questions,options,answers] = BasicPromptTools.ParseQuestionFile(params['faceQuestionFile'])
 print('%d questions loaded from %s'%(len(questions),params['faceQuestionFile']))
 
-[questions_vas,options_vas,answers_vas] = BasicPromptTools.ParseQuestionFile(params['moodQuestionFile'])
-print('%d questions loaded from %s'%(len(questions_vas),params['moodQuestionFile']))
+[questions_vas1,options_vas1,answers_vas1] = BasicPromptTools.ParseQuestionFile(params['moodQuestionFile1'])
+print('%d questions loaded from %s'%(len(questions_vas1),params['moodQuestionFile1']))
+
+[questions_vas2,options_vas2,answers_vas2] = BasicPromptTools.ParseQuestionFile(params['moodQuestionFile2'])
+print('%d questions loaded from %s'%(len(questions_vas2),params['moodQuestionFile2']))
+
+[questions_vas3,options_vas3,answers_vas3] = BasicPromptTools.ParseQuestionFile(params['moodQuestionFile3'])
+print('%d questions loaded from %s'%(len(questions_vas3),params['moodQuestionFile3']))
+
+[questions_vas4,options_vas4,answers_vas4] = BasicPromptTools.ParseQuestionFile(params['moodQuestionFile4'])
+print('%d questions loaded from %s'%(len(questions_vas4),params['moodQuestionFile4']))
 
 
 # declare order of blocks for later randomization
@@ -345,7 +361,7 @@ def ShowImage(imageFile, stimDur=float('Inf'),imageName='image'):
     
 
 # Run a set of visual analog scale (VAS) questions
-def RunVas(questions,options,pos=(0.,-.5),scaleTextPos=[0.,0.8],questionDur=params['questionDur'],isEndedByKeypress=params['questionSelectAdvances']):
+def RunVas(questions,options,pos=(0.,-.5),scaleTextPos=[0.,-0.3],questionDur=params['questionDur'],isEndedByKeypress=params['questionSelectAdvances']):
     
     # wait until it's time
     WaitForFlipTime()
@@ -366,18 +382,20 @@ def RunVas(questions,options,pos=(0.,-.5),scaleTextPos=[0.,0.8],questionDur=para
 
 def RunMoodVas(questions,options):
     
-    # Set screen color
-    win.color = params['moodVasScreenColor']
     
     # Wait until it's time
     WaitForFlipTime()
+    # Set screen color
+    win.color = params['moodVasScreenColor']
+    win.flip() # must flip twice for color change to take
+    
     # display pre-VAS prompt
     if not params['skipPrompts']:
         BasicPromptTools.RunPrompts([params['PreVasMsg']],["Press any button to continue."],win,message1,message2)
     
     # Display this VAS
     win.callOnFlip(SetPortData,data=params['codeVas'])
-    RunVas(questions_vas,options_vas,pos=(0,0.),scaleTextPos=[0,0.5],questionDur=float("inf"), isEndedByKeypress=True)
+    RunVas(questions,options,pos=(0,0.),scaleTextPos=[0,0.5],questionDur=float("inf"), isEndedByKeypress=True)
     
     # Set screen color back
     win.color = params['screenColor']
@@ -403,6 +421,8 @@ def DoRun(allImages,allCodes,allNames):
     win.logOnFlip(level=logging.EXP, msg='Display Fixation')
     # wait until it's time to show screen
     WaitForFlipTime()
+    # Update time of next stim
+    AddToFlipTime(params['fixCrossDur']) # duration of cross before each run
     # show screen and update next flip time
     win.flip()
     AddToFlipTime(params['tBaseline'])
@@ -477,6 +497,8 @@ def DoDummyRun():
     win.logOnFlip(level=logging.EXP, msg='Display Fixation')
     # wait until it's time to show screen
     WaitForFlipTime()
+    # Update time of next stim
+    AddToFlipTime(params['fixCrossDur']) # duration of cross before each run
     # show screen and update next flip time
     win.flip()
     AddToFlipTime(params['tDummyRun'])
@@ -488,6 +510,8 @@ def CoolDown():
     
     # turn off auto-draw of image
     stimImage.autoDraw = False
+    win.flip()
+    
     # display cool-down message
     message1.setText("That's the end! We will take you out of the scanner now. ")
     message2.setText("Press 'q' or 'escape' to end the session.")
@@ -501,13 +525,18 @@ def CoolDown():
     core.quit()
 
 
+# === SET UP GLOBAL ESCAPE KEY === #
+event.globalKeys.clear()
+event.globalKeys.add(key='q', modifiers=['ctrl'], func=CoolDown)
+
+
 # === MAIN EXPERIMENT === #
 
 # log experiment start and set up
 logging.log(level=logging.EXP, msg='---START EXPERIMENT---')
 
 # ---VAS
-RunMoodVas(questions,options)
+RunMoodVas(questions_vas1,options_vas1)
 
 # ---Instructions
 # display prompts
@@ -537,7 +566,7 @@ if thisKey[0] in ['q','escape']: # quit if excape keypress
 DoRun(allImages,allCodes,allNames)
 
 # ---VAS
-RunMoodVas(questions,options)
+RunMoodVas(questions_vas2,options_vas2)
 
 # ---break (60s)
 # display break prompt
@@ -550,15 +579,13 @@ WaitForFlipTime()
 # Display prompt
 win.flip()
 AddToFlipTime(params['tBreak'])
-
-# ---VAS
-RunMoodVas(questions,options)
+WaitForFlipTime()
 
 # ---Run 2
 DoRun(allImages,allCodes,allNames)
 
 # ---VAS
-RunMoodVas(questions,options)
+RunMoodVas(questions_vas3,options_vas3)
 
 # ---dummyRun (30s)
 DoDummyRun()
@@ -570,7 +597,7 @@ if not params['skipPrompts']:
     BasicPromptTools.RunPrompts([params['PreFinalVasMsg']],["Press any button to continue."],win,message1,message2)
 
 # ---VAS
-RunMoodVas(questions,options)
+RunMoodVas(questions_vas4,options_vas4)
 
 # Log end of experiment
 logging.log(level=logging.EXP, msg='--- END EXPERIMENT ---')

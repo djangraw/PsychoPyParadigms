@@ -1,9 +1,9 @@
 ### QUESTION 1: Scream
-?How likely is this face to scream?
+?How likely was this face to scream?
 -Not Likely
 -Very Likely
 
 ### QUESTION 2: Fear
-?How afraid are you?
+?How afraid were you?
 -Not afraid
 -Very afraid
