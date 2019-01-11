@@ -8,6 +8,7 @@
 # Updated 8/28/18 by DJ - added hideMouse and repeatDelay inputs to ShowVAS
 # Updated 9/5/18 by DJ - moved scale text up, added scaleTextPos input to customize it
 # Updated 12/3/18 by DJ - switched to custom markerStim, added labelYPos and markerSize as parameters
+# Updated 1/10/19 by DJ - if no response, log VAS result manually
 
 from psychopy import core, event, logging#, visual # visual and gui conflict, so don't import it here
 import time
@@ -103,6 +104,13 @@ def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float(
         rating[iQ] = ratingScale.getRating()
         decisionTime[iQ] = ratingScale.getRT()
         choiceHistory[iQ] = ratingScale.getHistory()
+        
+        # if no response, log manually
+        if ratingScale.noResponse:
+            logging.log(level=logging.DATA,msg='RatingScale %s: (no response) rating=%g'%(ratingScale.name,rating[iQ]))
+            logging.log(level=logging.DATA,msg='RatingScale %s: rating RT=%g'%(ratingScale.name,decisionTime[iQ]))
+            logging.log(level=logging.DATA,msg='RatingScale %s: history=%s'%(ratingScale.name,choiceHistory[iQ]))
+            
     
     return rating,decisionTime,choiceHistory
 

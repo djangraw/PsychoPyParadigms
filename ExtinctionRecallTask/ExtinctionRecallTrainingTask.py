@@ -1,21 +1,12 @@
 #!/usr/bin/env python2
 """
-ExtinctioRecallAndVasTask.py
+ExtinctioRecallTrainingTask.py
 Display images from a specified folder and present them to the subject, rating the images on given scales.
 Also have rest and "dummy" runs and present mood ratings to the subject in between.
 
-Created 8/21/18 by DJ.
-Updated 8/29/18 by DJ - added parallel port triggers, opening prompt, baseline period 
-Updated 11/14/18 by DJ - changed port ID for OP4, changed parallel port codes: 0-5 for image in block type 1, 
-   6-10 in block type 2, image code + 10 for face rating, 31 and 32 for baseline and mood rating VAS.
-Updated 11/28/18 by DJ - Debugged DoRun function, added RunMoodVas function and PreFinalVasMsg parameter.
-Updated 12/3/18 by DJ - added moodVasScreenColor, vasMarkerSize, and vasLabelYDist as parameters
-Updated 12/19/18 by DJ - split mood VASs into multiple independent files, changed screen colors & spaces, changed fORP keys.
-Updated 1/8/19 by DJ - added support for "versions" 5-8, added end block/group/run messages, named VASs more descriptively in log
-Updated 1/10/19 by DJ - added year to datestring, incorporated log parsing
-Updated 1/11/19 by DJ - fixed "versions" check, RunMoodVas end delays, comments
+Created 1/11/19 by DJ based on ExtinctionRecallAndVasTask.py.
 """
-
+ 
 # Import packages
 from psychopy import visual, core, gui, data, event, logging, sound 
 from psychopy.tools.filetools import fromFile, toFile # saving and loading parameter files
@@ -28,20 +19,19 @@ import pandas as pd # for log parsing
 from ImportExtinctionRecallTaskLog import * # for log parsing
  
 
-
 # ====================== #
 # ===== PARAMETERS ===== #
 # ====================== #
 # Save the parameters declared below?
 saveParams = True;
-newParamsFilename = 'ExtinctionRecallParams.psydat'
+newParamsFilename = 'ExtinctionRecallTrainingParams.psydat'
 
 # Declare primary task parameters.
 params = {
 # Declare experiment flow parameters
-    'nTrialsPerBlock': 5,            # number of trials in a block
+    'nTrialsPerBlock': 3,# 5,            # number of trials in a block
     'nBlocksPerGroup': 2,
-    'nGroupsPerRun': 2,
+    'nGroupsPerRun': 1,
 # Declare timing parameters
     'tStartup': 3.,         # 16., #time displaying instructions while waiting for scanner to reach steady-state
     'tBaseline': 4.,        # 60., # pause time before starting first stimulus
@@ -50,9 +40,7 @@ params = {
     'questionDur': 4.,      # duration of the image rating (in seconds)
     'tIsiMin': 4.,          # min time between when one stimulus disappears and the next appears (in seconds)
     'tIsiMax': 6.,          # max time between when one stimulus disappears and the next appears (in seconds)
-    'tBreak': 60,           # duration of break between runs
-    'tDummyRun': 30,        # duration of dummy run at end
-    'fixCrossDur': 20.,     # duration of cross fixation before each run
+    'fixCrossDur': 10.,#20.,     # duration of cross fixation before each run
 # Declare stimulus and response parameters
     'preppedKey': 'y',         # key from experimenter that says scanner is ready
     'triggerKey': '5',        # key from scanner that says scan is starting
@@ -61,23 +49,17 @@ params = {
                   # Corresponding Port codes will be 1-len(imageNames) for versions 2 & 4, len(imageNames)-1 for versions 1 & 3 (to match increasig CSplus level). 
 # declare prompt files
     'skipPrompts': False,     # go right to the scanner-wait page
-    'promptFile': 'Prompts/ExtinctionRecallPrompts.txt', # Name of text file containing prompts 
-    'PreSoundCheckFile': "Prompts/ExtinctionRecallSoundCheckPrompts.txt", # text file containing prompts shown before the sound check
+    'promptFile1': 'Prompts/ERTrainingPrompts1.txt', # Name of text file containing prompts shown before the Mood VAS practice 
+    'promptFile2': "Prompts/ERTrainingPrompts2.txt", # text file containing prompts shown before the image ratings practice
     'PreVasMsg': "Let's do some rating scales.", # text (not file) shown BEFORE each VAS except the final one
-    'BreakMsg': "You can rest now.", # text shown during break between runs
     'PreFinalVasMsg': "We're done!", # text shown before final VAS
 # declare VAS info
     'faceQuestionFile': 'Questions/ERFaceRatingScales.txt', # Name of text file containing image Q&As
     'moodQuestionFile1': 'Questions/ERVas1RatingScales.txt', # Name of text file containing mood Q&As presented before sound check
-    'moodQuestionFile2': 'Questions/ERVasRatingScales.txt', # Name of text file containing mood Q&As presented after 1st run
-    'moodQuestionFile3': 'Questions/ERVasRatingScales.txt', # Name of text file containing mood Q&As presented after 2nd run
-    'moodQuestionFile4': 'Questions/ERVas4RatingScales.txt', # Name of text file containing mood Q&As presented after final dummy run
     'questionDownKey': '4', # red on fORP
     'questionUpKey':'2', # yellow on fORP
     'questionSelectKey':'3', # green on fORP
-    'questionSelectAdvances': False, # will locking in an answer advance past an image rating?
-# sound info
-    'badSoundFile': "media/tone_noise_rany.wav",
+    'questionSelectAdvances': False,
 # parallel port parameters
     'sendPortEvents': True, # send event markers to biopac computer via parallel port
     'portAddress': 0xE050, # 0x0378, # address of parallel port
@@ -231,32 +213,19 @@ if len(allImages)<params['nTrialsPerBlock']:
 imageName = allImages[0] # initialize with first image
 stimImage = visual.ImageStim(win, pos=[0.,0.3], name='ImageStimulus',image=imageName, units='norm', size=[0.7,1.0])
 
-# load sound file
-badSound = sound.Sound(params['badSoundFile'])
-
 
 # read prompts, questions and answers from text files
-[topPrompts,bottomPrompts] = BasicPromptTools.ParsePromptFile(params['promptFile'])
-print('%d prompts loaded from %s'%(len(topPrompts),params['promptFile']))
+[topPrompts1,bottomPrompts1] = BasicPromptTools.ParsePromptFile(params['promptFile1'])
+print('%d prompts loaded from %s'%(len(topPrompts1),params['promptFile1']))
 
-[topPrompts_sound,bottomPrompts_sound] = BasicPromptTools.ParsePromptFile(params['PreSoundCheckFile'])
-print('%d prompts loaded from %s'%(len(topPrompts),params['PreSoundCheckFile']))
+[topPrompts2,bottomPrompts2] = BasicPromptTools.ParsePromptFile(params['promptFile2'])
+print('%d prompts loaded from %s'%(len(topPrompts2),params['promptFile2']))
 
 [questions,options,answers] = BasicPromptTools.ParseQuestionFile(params['faceQuestionFile'])
 print('%d questions loaded from %s'%(len(questions),params['faceQuestionFile']))
 
 [questions_vas1,options_vas1,answers_vas1] = BasicPromptTools.ParseQuestionFile(params['moodQuestionFile1'])
 print('%d questions loaded from %s'%(len(questions_vas1),params['moodQuestionFile1']))
-
-[questions_vas2,options_vas2,answers_vas2] = BasicPromptTools.ParseQuestionFile(params['moodQuestionFile2'])
-print('%d questions loaded from %s'%(len(questions_vas2),params['moodQuestionFile2']))
-
-[questions_vas3,options_vas3,answers_vas3] = BasicPromptTools.ParseQuestionFile(params['moodQuestionFile3'])
-print('%d questions loaded from %s'%(len(questions_vas3),params['moodQuestionFile3']))
-
-[questions_vas4,options_vas4,answers_vas4] = BasicPromptTools.ParseQuestionFile(params['moodQuestionFile4'])
-print('%d questions loaded from %s'%(len(questions_vas4),params['moodQuestionFile4']))
-
 
 # declare order of blocks for later randomization
 blockOrder = range(params['nBlocksPerGroup'])
@@ -480,46 +449,18 @@ def DoRun(allImages,allCodes,allNames):
     logging.log(level=logging.EXP,msg='===== END RUN =====')
 
 
-def DoDummyRun():
-    # wait for scanner
-    WaitForScanner() # includes SetFlipTimeToNow
-    # Log state of experiment
-    logging.log(level=logging.EXP,msg='===== START DUMMY RUN =====')
-    
-    # Display instructions while waiting to reach steady state
-    win.logOnFlip(level=logging.EXP, msg='Display RestInstructions')
-    message1.text = 'For the next minute or so, stare at the cross and rest.'
-    message1.draw()
-    win.flip()
-    AddToFlipTime(params['tStartup'])
-    
-    # display fixation before first stimulus
-    fixation.draw()
-    win.callOnFlip(SetPortData,data=params['codeBaseline'])
-    win.logOnFlip(level=logging.EXP, msg='Display Fixation')
-    # wait until it's time to show screen
-    WaitForFlipTime()
-    # Update time of next stim
-    AddToFlipTime(params['fixCrossDur']) # duration of cross before each run
-    # show screen and update next flip time
-    win.flip()
-    AddToFlipTime(params['tDummyRun'])
-    
-    # Log state of experiment
-    logging.log(level=logging.EXP,msg='===== END DUMMY RUN =====')
-
-
 def ProcessDataLog():
     
     imageOutDir = os.path.dirname(logFilename)
-    outMoodTable = "%s/ERTask-MoodVasTable.xlsx"%imageOutDir
+    outMoodTable = "%s/ERTraining-MoodVasTable.xlsx"%imageOutDir
     
     # import
     readParams,dfMoodVas,dfImageVas = ImportExtinctionRecallTaskLog_VasOnly(logFilename)
+    dfMoodVas = GetVasTypes(params,dfMoodVas,isTraining=True)
     # make figure
-    SaveVasFigures(readParams,dfMoodVas,dfImageVas,imageOutDir)
+    SaveVasFigures(readParams,dfMoodVas,dfImageVas,imageOutDir,'ERTraining')
     # convert to single line
-    dfMoodVas_singleRow = GetSingleVasLine(readParams,dfMoodVas)
+    dfMoodVas_singleRow = GetSingleVasLine(readParams,dfMoodVas,isTraining=True)
     
     # Append output table to file
     print("Appending to Mood VAS table %s..."%os.path.basename(outMoodTable))
@@ -536,7 +477,7 @@ def ProcessDataLog():
     runs = dfImageVas.run.unique()
     for run in runs:
         dfImageVas_thisrun = dfImageVas.loc[dfImageVas.run==run,:]
-        outImageTable = '%s/ERTask-%d-%d-run%d-ImageVasTable.xlsx'%(imageOutDir,readParams['subject'],readParams['session'],run)
+        outImageTable = '%s/ERTraining-%d-%d-run%d-ImageVasTable.xlsx'%(imageOutDir,readParams['subject'],readParams['session'],run)
         print("Saving Image VAS table %s..."%os.path.basename(outImageTable))
         dfImageVas_thisrun.to_excel(outImageTable,index=False)
     
@@ -549,8 +490,8 @@ def CoolDown():
     stimImage.autoDraw = False
     win.flip()
     
-    # display cool-down message
-    message1.setText("That's the end! We will take you out of the scanner now. ")
+    # display cool-down message before processing log
+    message1.setText("That's the end! We are ready to go in the scanner now.")
     message2.setText("(Experimenter: Processing data log now... do not quit.)")
     win.logOnFlip(level=logging.EXP, msg='Display TheEnd')
     message1.draw()
@@ -561,8 +502,8 @@ def CoolDown():
     logging.flush() # make sure all messages have been written
     ProcessDataLog()
     
-    # display cool-down message
-    message1.setText("That's the end! We will take you out of the scanner now. ")
+    # display cool-down message after processing log
+    message1.setText("That's the end! We are ready to go in the scanner now.")
     message2.setText("Press 'q' or 'escape' to end the session.")
     win.logOnFlip(level=logging.EXP, msg='Display TheEnd')
     message1.draw()
@@ -584,69 +525,21 @@ event.globalKeys.add(key='q', modifiers=['ctrl'], func=CoolDown)
 # log experiment start and set up
 logging.log(level=logging.EXP, msg='---START EXPERIMENT---')
 
+# ---Instructions
+# display prompts
+if not params['skipPrompts']:
+    BasicPromptTools.RunPrompts(topPrompts1,bottomPrompts1,win,message1,message2)
+
 # ---VAS
-RunMoodVas(questions_vas1,options_vas1,name='PreSoundCheck-')
+RunMoodVas(questions_vas1,options_vas1,name='PreRun1-')
 
 # ---Instructions
 # display prompts
 if not params['skipPrompts']:
-    BasicPromptTools.RunPrompts(topPrompts,bottomPrompts,win,message1,message2)
-
-# ---Sound Check
-# show instructions
-if not params['skipPrompts']:
-    BasicPromptTools.RunPrompts(topPrompts_sound,bottomPrompts_sound,win,message1,message2)
-
-# show blank screen
-win.logOnFlip(level=logging.EXP, msg='Display Blank')
-win.flip()
-# wait briefly
-core.wait(0.5)
-
-# play sound
-badSound.play()
-
-# wait for keypress
-thisKey = event.waitKeys()
-if thisKey[0] in ['q','escape']: # quit if excape keypress
-    core.quit()
+    BasicPromptTools.RunPrompts(topPrompts2,bottomPrompts2,win,message1,message2)
 
 # ---Run 1
 DoRun(allImages,allCodes,allNames)
-
-# ---VAS
-RunMoodVas(questions_vas2,options_vas2,name='PostRun1-')
-
-# ---break (60s)
-# display break prompt
-message1.text = params['BreakMsg']
-# Set up display
-win.logOnFlip(level=logging.EXP, msg='Display BreakMsg')
-message1.draw()
-# Wait until it's time to display
-WaitForFlipTime()
-# Display prompt
-win.flip()
-AddToFlipTime(params['tBreak'])
-WaitForFlipTime()
-
-# ---Run 2
-DoRun(allImages,allCodes,allNames)
-
-# ---VAS
-RunMoodVas(questions_vas3,options_vas3,name='PostRun2-')
-
-# ---dummyRun (30s)
-DoDummyRun()
-
-# ---DonePrompt
-WaitForFlipTime()
-# display done prompt
-if not params['skipPrompts']:
-    BasicPromptTools.RunPrompts([params['PreFinalVasMsg']],["Press any button to continue."],win,message1,message2)
-
-# ---VAS
-RunMoodVas(questions_vas4,options_vas4,name='PostDummyRun-')
 
 # Log end of experiment
 logging.log(level=logging.EXP, msg='--- END EXPERIMENT ---')

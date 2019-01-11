@@ -1,0 +1,6 @@
+### Page 1 ###
++In this task, we will see images of faces. TOKUM!
+-Press any button to continue.
+### Page 2 ###
++First, we are going to practice using the slider by doing some rating scales. To slide right, press the yellow button. To slide left, press the red button. To lock your final answer, press the green button. 
+-Press any button to begin.

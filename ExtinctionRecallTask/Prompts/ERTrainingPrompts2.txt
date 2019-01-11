@@ -1,0 +1,9 @@
+### Page 1 ###
++Great job! Now you will see faces... TOKUM!
+-Press any button to continue.
+### Page 2 ###
++Your job will be to rate the face... TOKUM! 
+-Press any button to continue.
+### Page 3 ###
++We're going to practice using the slider for these faces. TOKUM! 
+-Press any button to begin.
