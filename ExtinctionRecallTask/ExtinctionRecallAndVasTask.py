@@ -14,6 +14,7 @@ Updated 12/19/18 by DJ - split mood VASs into multiple independent files, change
 Updated 1/8/19 by DJ - added support for "versions" 5-8, added end block/group/run messages, named VASs more descriptively in log
 Updated 1/10/19 by DJ - added year to datestring, incorporated log parsing
 Updated 1/11/19 by DJ - fixed "versions" check, RunMoodVas end delays, comments
+Updated 1/22/19 by DJ - modified "range" calls to make compatible with python3
 """
 
 # Import packages
@@ -153,10 +154,10 @@ for flowItem in ['skipPrompts','sendPortEvents']:
 
 
 # print params to Output
-print 'params = {'
+print('params = {')
 for key in sorted(params.keys()):
-    print "   '%s': %s"%(key,params[key]) # print each value as-is (no quotes)
-print '}'
+    print("   '%s': %s"%(key,params[key])) # print each value as-is (no quotes)
+print('}')
     
 # save experimental info
 toFile('%s-lastExpInfo.psydat'%scriptName, expInfo)#save params to file for next time
@@ -187,7 +188,7 @@ if params['sendPortEvents']:
     port = parallel.ParallelPort(address=params['portAddress'])
     port.setData(0) # initialize to all zeros
 else:
-    print "Parallel port not used."
+    print("Parallel port not used.")
     
 
 # ========================== #
@@ -216,10 +217,10 @@ message2 = visual.TextStim(win, pos=[0,-.6], wrapWidth=1.5, color=params['textCo
 allImages = [params['imageDir'] + name for name in params['imageNames']] # assemble filenames: <imageDir>/<imageNames>.
 # create corresponding names & codes
 if int(expInfo['version']) in [2,4,6,8]: # if it's one of these versions, first in list params['imageNames'] list is CS+0.
-    allCodes = range(1,len(allImages)+1)
+    allCodes = list(range(1,len(allImages)+1))
     allNames = ['CSplus0','CSplus25','CSplus50','CSplus75','CSplus100']
 else: # if it's version 1, 3, 5, or 7, reverse order
-    allCodes = range(len(allImages),0,-1)
+    allCodes = list(range(len(allImages),0,-1))
     allNames = ['CSplus100','CSplus75','CSplus50','CSplus25','CSplus0']
     
 print('%d images loaded from %s'%(len(allImages),params['imageDir']))
@@ -259,7 +260,7 @@ print('%d questions loaded from %s'%(len(questions_vas4),params['moodQuestionFil
 
 
 # declare order of blocks for later randomization
-blockOrder = range(params['nBlocksPerGroup'])
+blockOrder = list(range(params['nBlocksPerGroup']))
 
 
 # ============================ #

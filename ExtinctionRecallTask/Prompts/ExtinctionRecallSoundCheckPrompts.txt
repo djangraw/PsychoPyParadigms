@@ -1,6 +1,6 @@
 ### Page 1 ###
 
-+We are now going to run a quick sound check. Click the blue button if you hear a sound and click the yellow button if you do not hear a sound.
++We are now going to run a quick sound check. Click the red button if you hear a sound and click the yellow button if you do not hear a sound.
 -Press any button to continue.
 
 ### Page 2 ###

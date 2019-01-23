@@ -1,9 +1,13 @@
 #!/usr/bin/env python2
-"""Display images to the subject while collecting EyeLink eye tracking data."""
-# FaceGazeTask.py
-# Created 10/30/18 by DJ based on ExtinctionRecallTask.py.
-# Updated 11/8-9/18 by DJ - added new images, timing file reading code
-# Updated 11/26/18 by DJ - comments and cleanup
+"""
+FaceGazeTask.py
+Display images to the subject while collecting EyeLink eye tracking data.
+
+* Created 10/30/18 by DJ based on ExtinctionRecallTask.py.
+* Updated 11/8-9/18 by DJ - added new images, timing file reading code
+* Updated 11/26/18 by DJ - comments and cleanup
+* Updated 1/23/19 by DJ - added global escape key, modified print cmds and file reads to work in PschoPy3.
+"""
 
 # Import packages
 from psychopy import visual, core, gui, data, event, logging # sound
@@ -124,10 +128,10 @@ for flowItem in ['skipPrompts']:
 
 
 # print params to Output
-print 'params = {'
+print('params = {')
 for key in sorted(params.keys()):
-    print "   '%s': %s"%(key,params[key]) # print each value as-is (no quotes)
-print '}'
+    print("   '%s': %s"%(key,params[key])) # print each value as-is (no quotes)
+print('}')
 
 # save experimental info
 toFile('%s-lastExpInfo.psydat'%scriptName, expInfo)#save params to file for next time
@@ -154,20 +158,10 @@ logging.log(level=logging.INFO, msg='---END PARAMETERS---')
 # ===== GET SCREEN RES ===== #
 # ========================== #
 
-## kluge for secondary monitor
-#if params['fullScreen']:
-#    screens = AppKit.NSScreen.screens()
-#    screenRes = (int(screens[params['screenToShow']].frame().size.width), int(screens[params['screenToShow']].frame().size.height))
-##    screenRes = [1920, 1200]
-#    if params['screenToShow']>0:
-#        params['fullScreen'] = False
-#else:
-#    screenRes = [800,600]
-
 screenRes = params['screenRes']
 scnWidth = screenRes[0]
 scnHeight = screenRes[1]
-print "screenRes = [%d,%d]"%screenRes
+print("screenRes = [%d,%d]"%screenRes)
 
 
 # ========================== #
@@ -197,6 +191,8 @@ print('%d prompts loaded from %s'%(len(topPrompts),params['promptFile']))
 isSubjUsed = False
 with open(params['usedTimingFileList']) as f:
     allLines = f.read().splitlines(True)
+allLines=[line.rstrip('\n') for line in allLines] # remove trailing newline characters
+
 # check whether this subj has been used
 for line in allLines:
     if line.startswith(expInfo['subject']):
@@ -207,6 +203,7 @@ for line in allLines:
 if not isSubjUsed:
     with open(params['unusedTimingFileList'], 'r') as fin:
         data = fin.read().splitlines(True)
+    data=[line.rstrip('\n') for line in data] # remove trailing newline characters
     timingFile = data[0]
     print('Subject %s not yet used. Using timing file %s.'%(expInfo['subject'],timingFile))
     # add it to the used list
@@ -225,6 +222,8 @@ stimDur = []
 itis = []
 with open(params['timingFileDir'] + timingFile) as f:
     allLines = f.read().splitlines(True)
+allLines=[line.rstrip('\n') for line in allLines] # remove trailing newline characters
+
 for line in allLines:
     if line.startswith(' '):
         data = line.split()
@@ -280,7 +279,7 @@ stimImage.size = (2*aspectRatio,2) # stretch to height of screen, assume all ima
 if expInfo['useEyeLink']:
     tk = pylink.EyeLink('100.1.1.1')
 else:
-    print "EyeLink not used."
+    print("EyeLink not used.")
     tk = pylink.EyeLink(None)
 
 
@@ -470,6 +469,8 @@ def CoolDown():
     win.close()
     core.quit()
 
+
+# === SET UP GLOBAL ESCAPE KEY === #event.globalKeys.clear()event.globalKeys.add(key='q', modifiers=['ctrl'],func=CoolDown)
 
 # =========================== #
 # ====== RUN EXPERIMENT ===== #
