@@ -10,6 +10,7 @@ Set audio library to pygame to avoid hanging at the end of the experiment."""
 # Updated 10/4/18 by RAAH - added ignoreKeys 1,2,3,4 during pre-rest and pre-movie prompts.
 # Updated 10/16/18 by DJ - added pre-final-scan prompts
 # Updated 12/4/18 by DJ - added year to datestring
+# Updated 1/29/19 by DJ - added global escape key
 
 from psychopy import visual # visual must be called first to prevent a bug where the movie doesn't appear.
 from psychopy import core, gui, data, event, logging, parallel # sound 
@@ -342,6 +343,10 @@ def CoolDown():
     # exit
     core.quit()
 
+
+# === SET UP GLOBAL ESCAPE KEY === #
+event.globalKeys.clear()
+event.globalKeys.add(key='q', modifiers=['ctrl'],func=CoolDown)
 
 # ============================= #
 # ==== STRUCTURALS SECTION ==== #

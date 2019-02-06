@@ -7,6 +7,10 @@ Display images to the subject while collecting EyeLink eye tracking data.
 * Updated 11/8-9/18 by DJ - added new images, timing file reading code
 * Updated 11/26/18 by DJ - comments and cleanup
 * Updated 1/23/19 by DJ - added global escape key, modified print cmds and file reads to work in PschoPy3.
+* Updated 1/24/19 by DJ - updated image files.
+* Updated 1/25/19 by DJ - fixed over-logging during tracker setup
+* Updated 2/5/19 by DJ - changed background color, fixCross pos, pre&post timing
+* Updated 2/6/19 by DJ - made fix cross text instead of shapeStim (to make it thicker), fixed screenRes display in fullscreen mode
 """
 
 # Import packages
@@ -19,6 +23,7 @@ import math # for rounding
 #import AppKit # for monitor size detection (Mac only)
 import BasicPromptTools # for loading/presenting prompts and questions
 import random # for randomization of trials
+import io # for reading files with specified newlines
 # EyeLink packages
 import pylink # for eye tracker interface
 from EyeLinkCoreGraphicsPsychoPy import EyeLinkCoreGraphicsPsychoPy
@@ -33,43 +38,43 @@ newParamsFilename = 'FaceGazeParams.psydat'
 # Declare primary task parameters.
 params = {
 # Declare EyeLink parameters
-    'eyeSampleRate': 500, # sampling rate of EyeLink (250, 500, 1000, or 2000)
-    'eyeCalibType': 'HV9', # EyeLink caibration type (H3, HV3, HV5, HV9, or HV13 (HV = horiztonal/vertical)),
+    'eyeSampleRate': 500,   # sampling rate of EyeLink (250, 500, 1000, or 2000)
+    'eyeCalibType': 'HV9',  # EyeLink caibration type (H3, HV3, HV5, HV9, or HV13 (HV = horiztonal/vertical)),
 # Declare experiment flow parameters
     'nTrialsPerRun': 45,    # number of trials in a block
     'nRunsPerSession': 2,   # number of runs in a session
 # Declare timing parameters
-    'tStartup': 3.,         # 16., # time displaying fixation cross while waiting for scanner to reach steady-state
-    'tCoolDown': 3.,        # 10., # time displaying fixation cross while waiting for scanner to stop
+    'tStartup': 9.2,        # time displaying fixation cross while waiting for scanner to reach steady-state
+    'tCoolDown': 10.,       # time displaying fixation cross while waiting for scanner to stop
 # Declare stimulus and response parameters
-    'preppedKey': 'y',         # key from experimenter that says scanner is ready
-    'triggerKey': '5',        # key from scanner that says scan is starting
-    'imageDir': 'Images/',    # directory containing image stimluli
-    'imageNames': ['AF01NEFL.jpg','AF05xxxxcopy2.jpg','AM08NEFR.jpg',
-'AF01NES.jpg','AF05xxxxcopy3.jpg','AM08NES.jpg',
-'AF01xxxxcopy1.jpg','AF05xxxxcopy4.jpg','AM21NEFL.jpg',
-'AF01xxxxcopy2.jpg','AF05xxxx.jpg','AM21NES.jpg',
-'AF01xxxxcopy3.jpg','AF09NEFL.jpg','AM23NEFR.jpg',
-'AF01xxxxcopy4.jpg','AF09NES.jpg','AM23NES.jpg',
-'AF01xxxx.jpg','AF20NEFR.jpg','AM28NEFL.jpg',
-'AF05NEFR.jpg','AF20NES.jpg','AM28NES.jpg',
-'AF05NES.jpg','AF32NEFL.jpg','AM31NEFR.jpg',
-'AF05xxxxcopy1.jpg','AF32NES.jpg','AM31NES.jpg'],   # images will be selected randomly (without replacement) from this list of files in imageDir.
+    'preppedKey': 'y',      # key from experimenter that says scanner is ready
+    'triggerKey': '5',      # key from scanner that says scan is starting
+    'imageDir': 'Images/',  # directory containing image stimluli
+    'imageNames': ['oAF01NEFL.png','oAF01NES.png','oAF05NEFR.png',
+'oAF05NES.png','oAF09NEFL.png','oAF09NES.png',
+'oAF20NEFR.png','oAF20NES.png','oAF32NEFL.png',
+'oAF32NES.png','oAM08NEFR.png','oAM08NES.png',
+'oAM21NEFL.png','oAM21NES.png','oAM23NEFR.png',
+'oAM23NES.png','oAM28NEFL.png','oAM28NES.png',
+'oAM31NEFR.png','oAM31NES.png','C1.png',
+'C2.png','C3.png','C4.png',
+'C5.png','C6.png','C7.png',
+'C8.png','C9.png','C10.png'], # images will be selected randomly (without replacement) from this list of files in imageDir.
 # declare prompt files
     'skipPrompts': False,     # go right to the scanner-wait page
     'promptFile': 'Prompts/PressSpacePrompts.txt', # Name of text file containing prompts
 # declare timing files
-    'timingFileDir': 'TimingFiles/', # where the AFNI timing text files sit
-    'usedTimingFileList': 'TimingFiles/UsedTimingFiles.txt', # subject number and timing file
+    'timingFileDir': 'TimingFiles/',                             # where the AFNI timing text files sit
+    'usedTimingFileList': 'TimingFiles/UsedTimingFiles.txt',     # subject number and timing file
     'unusedTimingFileList': 'TimingFiles/UnusedTimingFiles.txt', # timing files
 # declare display parameters
-    'fullScreen': True,       # run in full screen mode?
-    'screenToShow': 0,        # display on primary screen (0) or secondary (1)?
-    'screenRes': (1024, 768), # display size in pixels
-    'fixCrossSize': 50,       # size of cross, in pixels
-    'fixCrossPos': (0,-300),     # (x,y) pos of fixation cross displayed before each stimulus (in pixels from center, for gaze drift correction)
-    'screenColor':(0,0,0),    # in rgb space: (r,g,b) all between -1 and 1
-    'textColor': (-1,-1,-1),  # black
+    'fullScreen': True,         # run in full screen mode?
+    'screenToShow': 0,          # display on primary screen (0) or secondary (1)?
+    'screenRes': (0, 0),        # (1040,768),# display size in pixels (overridden by monitor resolution if fullScreen=True)
+    'fixCrossSize': 0.3,        # size of "+" text displayed before each trial (in norm units, 1 = capital letters 1/2 screen height high)
+    'fixCrossPos': (0,-0.5),    # (x,y) pos of fixation cross displayed before each stimulus (in norm units from center, for gaze drift correction)
+    'screenColor':(0.7,0.7,0.7),# in rgb space: (r,g,b) all between -1 and 1
+    'textColor': (-1,-1,-1),    # in rgb space: (r,g,b) all between -1 and 1
 }
 
 # save parameters
@@ -139,7 +144,7 @@ toFile('%s-lastExpInfo.psydat'%scriptName, expInfo)#save params to file for next
 # Start log file
 dateStr = ts.strftime("%b_%d_%H%M", ts.localtime()) # add the current time
 filename = 'Logs/%s-%s-%d-%s'%(scriptName,expInfo['subject'], expInfo['run'], dateStr) # log filename, no run param
-outLog = logging.LogFile((filename+'.log'), level=logging.INFO)#, mode='w') # w=overwrite
+outLog = logging.LogFile((filename+'.log'), level=logging.EXP)#, mode='w') # w=overwrite
 logging.log(level=logging.INFO, msg='---START PARAMETERS---')
 logging.log(level=logging.INFO, msg='filename: %s'%filename)
 logging.log(level=logging.INFO, msg='subject: %s'%expInfo['subject'])
@@ -153,17 +158,6 @@ for key in sorted(params.keys()): # in alphabetical order
 logging.log(level=logging.INFO, msg='---END PARAMETERS---')
 
 
-
-# ========================== #
-# ===== GET SCREEN RES ===== #
-# ========================== #
-
-screenRes = params['screenRes']
-scnWidth = screenRes[0]
-scnHeight = screenRes[1]
-print("screenRes = [%d,%d]"%screenRes)
-
-
 # ========================== #
 # ===== SET UP STIMULI ===== #
 # ========================== #
@@ -174,12 +168,17 @@ tNextFlip = [0.0] # put in a list to make it mutable (weird quirk of python vari
 #create clocks and window
 globalClock = core.Clock()#to keep track of time
 trialClock = core.Clock()#to keep track of time
-win = visual.Window(screenRes, fullscr=params['fullScreen'], allowGUI=False, monitor='testMonitor', screen=params['screenToShow'], units='pix', name='win',color=params['screenColor'])
+win = visual.Window(params['screenRes'], fullscr=params['fullScreen'], allowGUI=False, monitor='testMonitor', screen=params['screenToShow'], units='pix', name='win',color=params['screenColor'])
+
+# update screen resolution
+screenRes = (win.size[0]/2,win.size[1]/2)
+scnWidth = screenRes[0]
+scnHeight = screenRes[1]
+print("Actual screenRes = [%d,%d]"%screenRes)
+
 # create fixation cross
-fCS = params['fixCrossSize'] # size (for brevity)
-fCP = params['fixCrossPos'] # position (for brevity)
-lineWidth = int(params['fixCrossSize']/3)
-fixation = visual.ShapeStim(win,lineColor=params['textColor'],lineWidth=lineWidth,vertices=((fCP[0]-fCS/2,fCP[1]),(fCP[0]+fCS/2,fCP[1]),(fCP[0],fCP[1]),(fCP[0],fCP[1]+fCS/2),(fCP[0],fCP[1]-fCS/2)),units='pix',closeShape=False,name='fixCross');
+fixation = visual.TextStim(win, pos=params['fixCrossPos'], color=params['textColor'], alignHoriz='center', name='fixCross', text="+",height=params['fixCrossSize'],units='norm')
+
 # create text stimuli
 message1 = visual.TextStim(win, pos=[0,+.5], wrapWidth=1.5, color=params['textColor'], alignHoriz='center', name='topMsg', text="aaa",units='norm')
 message2 = visual.TextStim(win, pos=[0,-.5], wrapWidth=1.5, color=params['textColor'], alignHoriz='center', name='bottomMsg', text="bbb",units='norm')
@@ -189,9 +188,8 @@ print('%d prompts loaded from %s'%(len(topPrompts),params['promptFile']))
 
 # read in list of subjects/timing fiiles used
 isSubjUsed = False
-with open(params['usedTimingFileList']) as f:
-    allLines = f.read().splitlines(True)
-allLines=[line.rstrip('\n') for line in allLines] # remove trailing newline characters
+with io.open(params['usedTimingFileList']) as f:
+    allLines = f.read().splitlines()
 
 # check whether this subj has been used
 for line in allLines:
@@ -201,28 +199,26 @@ for line in allLines:
         print('Subject %s found in %s! Reusing timing file %s.'%(expInfo['subject'],params['usedTimingFileList'],timingFile))
 # if it hasn't been, find a timing file that hasn't been used
 if not isSubjUsed:
-    with open(params['unusedTimingFileList'], 'r') as fin:
-        data = fin.read().splitlines(True)
-    data=[line.rstrip('\n') for line in data] # remove trailing newline characters
+    with io.open(params['unusedTimingFileList'], 'r') as fin:
+        data = fin.read().splitlines()
     timingFile = data[0]
     print('Subject %s not yet used. Using timing file %s.'%(expInfo['subject'],timingFile))
     # add it to the used list
     print('Adding to %s.'%params['usedTimingFileList'])
-    with open(params['usedTimingFileList'],'a') as f:
-        f.write("%s %s"%(expInfo['subject'],timingFile))
+    with io.open(params['usedTimingFileList'],'a') as f:
+        f.write("%s %s\r\n"%(expInfo['subject'],timingFile))
     # remove it from the unused list
     print('Removing from %s.'%params['usedTimingFileList'])
-    with open(params['unusedTimingFileList'], 'w') as fout:
-        fout.writelines(data[1:])
+    with io.open(params['unusedTimingFileList'], 'w') as fout:
+        fout.write('\n'.join(data[1:]))
 
 # read in stimulus timing file
 # [conditions,stimDur,itis] = readTimingFile(timingFile)
 conditions = []
 stimDur = []
 itis = []
-with open(params['timingFileDir'] + timingFile) as f:
-    allLines = f.read().splitlines(True)
-allLines=[line.rstrip('\n') for line in allLines] # remove trailing newline characters
+with io.open(params['timingFileDir'] + timingFile,newline='\r\n') as f:
+    allLines = f.read().splitlines()
 
 for line in allLines:
     if line.startswith(' '):
@@ -368,6 +364,14 @@ def AddToFlipTime(tIncrement=1.0):
 # flip window as soon as possible
 def SetFlipTimeToNow():
     tNextFlip[0] = globalClock.getTime()
+    
+def WaitForFlipTime():
+    while (globalClock.getTime()<tNextFlip[0]):
+        keyList = event.getKeys()
+        # Check for escape characters
+        for key in keyList:
+            if key in ['q','escape']:
+                CoolDown()
 
 # Send EyeLink event
 def SendEyeEvent(eventText):
@@ -413,8 +417,7 @@ def RunTrial(imageFile, stimDur=float('Inf'),imageCond=0,tIti=0):
     win.logOnFlip(level=logging.EXP, msg=msgTxt)
     win.callOnFlip(SendEyeEvent,msgTxt)
     # Wait until it's time to display
-    while (globalClock.getTime()<tNextFlip[0]):
-        pass
+    WaitForFlipTime()
     # flip window to display image
     win.flip()
     # Update next stim time
@@ -426,15 +429,21 @@ def RunTrial(imageFile, stimDur=float('Inf'),imageCond=0,tIti=0):
         win.logOnFlip(level=logging.EXP, msg='Display Fixation')
         win.callOnFlip(SendEyeEvent,'Display Fixation')
         # Wait until it's time to display
-        while (globalClock.getTime()<tNextFlip[0]):
-            pass
+        WaitForFlipTime()
         win.flip()
         AddToFlipTime(tIti)
 
 
 # Handle end of a run
 def CoolDown():
-
+    
+    pylink.endRealTimeMode()
+    pylink.pumpDelay(100)
+    error = tk.stopRecording()
+    
+    # Clear the screen
+    win.flip()
+    
     # display cool-down message
     message1.setText("That's the end! ")
     message2.setText("Press 'q' or 'escape' to end the run.")
@@ -442,7 +451,7 @@ def CoolDown():
     message1.draw()
     message2.draw()
     win.flip()
-
+    
     # Wait for keypress
     thisKey = event.waitKeys(keyList=['q','escape'])
 
@@ -470,7 +479,9 @@ def CoolDown():
     core.quit()
 
 
-# === SET UP GLOBAL ESCAPE KEY === #event.globalKeys.clear()event.globalKeys.add(key='q', modifiers=['ctrl'],func=CoolDown)
+# === SET UP GLOBAL ESCAPE KEY === #
+event.globalKeys.clear()
+event.globalKeys.add(key='q', modifiers=['ctrl'],func=CoolDown)
 
 # =========================== #
 # ====== RUN EXPERIMENT ===== #
@@ -491,8 +502,11 @@ win.flip()
 
 # set up the camera and calibrate the eye tracker at the beginning of each run
 outLog.setLevel(logging.DATA)
+logging.console.setLevel(logging.DATA)
 tk.doTrackerSetup()
+# set logging level back
 outLog.setLevel(logging.INFO)
+logging.console.setLevel(logging.INFO)
 
 # START EYELINK RECORDING
 # start recording, parameters specify whether events and samples are
