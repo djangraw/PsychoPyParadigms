@@ -9,6 +9,7 @@
 # Updated 9/5/18 by DJ - moved scale text up, added scaleTextPos input to customize it
 # Updated 12/3/18 by DJ - switched to custom markerStim, added labelYPos and markerSize as parameters
 # Updated 1/10/19 by DJ - if no response, log VAS result manually
+# Updated 2/21/19 by DJ - fixed VAS bug where pos!=0 led to moving marker
 
 from psychopy import core, event, logging#, visual # visual and gui conflict, so don't import it here
 import time
@@ -19,7 +20,7 @@ def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float(
     from psychopy import visual # for ratingScale
     import numpy as np # for tick locations
     from pyglet.window import key # for press-and-hold functionality
-    
+
     # set up
     nQuestions = len(questions_list)
     rating = [None]*nQuestions
@@ -30,18 +31,19 @@ def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float(
     win.winHandle.push_handlers(keyState)
     # Get attributes for key handler (put _ in front of numbers)
     if downKey[0].isdigit():
-        downKey_attr = '_%s'%downKey        
+        downKey_attr = '_%s'%downKey
     else:
         downKey_attr = downKey
     if upKey[0].isdigit():
         upKey_attr = '_%s'%upKey
     else:
         upKey_attr = upKey
-    # Make triangle
-    markerStim = visual.ShapeStim(win,lineColor=textColor,fillColor=textColor,vertices=((-markerSize/2.,markerSize*np.sqrt(5./4.)),(markerSize/2.,markerSize*np.sqrt(5./4.)),(0,0)),units='norm',closeShape=True,name='triangle');
-        
+
     # Rating Scale Loop
     for iQ in range(nQuestions):
+        # Make triangle
+        markerStim = visual.ShapeStim(win,lineColor=textColor,fillColor=textColor,vertices=((-markerSize/2.,markerSize*np.sqrt(5./4.)),(markerSize/2.,markerSize*np.sqrt(5./4.)),(0,0)),units='norm',closeShape=True,name='triangle');
+
         tickLocs = np.linspace(0,100,len(options_list[iQ])).tolist()
         tickWidth = (tickLocs[1]-tickLocs[0])*0.9/100 # *.9 for extra space, /100 for norm units
         ratingScale = visual.RatingScale(win, scale=questions_list[iQ], \
@@ -59,7 +61,7 @@ def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float(
             ratingScale.labels[iLabel].alignHoriz = 'center'
         # Move main text
         ratingScale.scaleDescription.pos = scaleTextPos
-            
+
         # Display until time runs out (or key is pressed, if specified)
         win.logOnFlip(level=logging.EXP, msg='Display %s%d'%(name,iQ))
         tStart = time.time()
@@ -77,7 +79,7 @@ def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float(
                 step = stepSize
             else:
                 keyPressed = None
-            
+
             # Handle sliding for held keys
             while (keyPressed is not None) and ((time.time()-tStart)<questionDur):
                 # update time
@@ -99,18 +101,17 @@ def ShowVAS(questions_list,options_list, win,name='Question', questionDur=float(
             # Redraw
             ratingScale.draw()
             win.flip()
-            
+
         # Log outputs
         rating[iQ] = ratingScale.getRating()
         decisionTime[iQ] = ratingScale.getRT()
         choiceHistory[iQ] = ratingScale.getHistory()
-        
+
         # if no response, log manually
         if ratingScale.noResponse:
             logging.log(level=logging.DATA,msg='RatingScale %s: (no response) rating=%g'%(ratingScale.name,rating[iQ]))
             logging.log(level=logging.DATA,msg='RatingScale %s: rating RT=%g'%(ratingScale.name,decisionTime[iQ]))
             logging.log(level=logging.DATA,msg='RatingScale %s: history=%s'%(ratingScale.name,choiceHistory[iQ]))
-            
-    
-    return rating,decisionTime,choiceHistory
 
+
+    return rating,decisionTime,choiceHistory

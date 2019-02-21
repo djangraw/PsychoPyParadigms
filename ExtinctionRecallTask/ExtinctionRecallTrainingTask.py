@@ -5,6 +5,8 @@ Display images from a specified folder and present them to the subject, rating t
 Also have rest and "dummy" runs and present mood ratings to the subject in between.
 
 Created 1/11/19 by DJ based on ExtinctionRecallAndVasTask.py.
+Updated 1/22/19 by DJ - modified "range" calls to make compatible with python3
+Updated 2/21/19 by DJ - changed timing, added MSI, moved stimuli, changed names to CSplus-1/2, randomize Q order for each run but not each group
 """
  
 # Import packages
@@ -29,24 +31,26 @@ newParamsFilename = 'ExtinctionRecallTrainingParams.psydat'
 # Declare primary task parameters.
 params = {
 # Declare experiment flow parameters
-    'nTrialsPerBlock': 3,# 5,            # number of trials in a block
-    'nBlocksPerGroup': 2,
-    'nGroupsPerRun': 1,
+    'nTrialsPerBlock': 2, # number of trials in a block
+    'nBlocksPerGroup': 2, # number of blocks in a group (should match number of face VAS questions)
+    'nGroupsPerRun': 1,   # number times this "group" pattern should repeat
 # Declare timing parameters
     'tStartup': 3.,         # 16., #time displaying instructions while waiting for scanner to reach steady-state
     'tBaseline': 4.,        # 60., # pause time before starting first stimulus
     'tPreBlockPrompt': 5.,  # duration of prompt before each block
-    'tStim': 4.,            # time when stimulus is presented (in seconds)
-    'questionDur': 4.,      # duration of the image rating (in seconds)
-    'tIsiMin': 4.,          # min time between when one stimulus disappears and the next appears (in seconds)
-    'tIsiMax': 6.,          # max time between when one stimulus disappears and the next appears (in seconds)
-    'fixCrossDur': 10.,#20.,     # duration of cross fixation before each run
+    'tStimMin': 2.,         # min duration of stimulus (in seconds)
+    'tStimMax': 4.,         # max duration of stimulus (in seconds)
+    'questionDur': 2.5,     # duration of the image rating (in seconds)
+    'tMsiMin': 0.,          # min time between when one stimulus disappears and the next appears (in seconds)
+    'tMsiMax': 4.,          # max time between when one stimulus disappears and the next appears (in seconds)
+    'tIsiMin': 0.2,          # min time between when one stimulus disappears and the next appears (in seconds)
+    'tIsiMax': 9.,          # max time between when one stimulus disappears and the next appears (in seconds)
+    'fixCrossDur': 2,#20.,     # duration of cross fixation before each run
 # Declare stimulus and response parameters
     'preppedKey': 'y',         # key from experimenter that says scanner is ready
     'triggerKey': '5',        # key from scanner that says scan is starting
     'imageDir': 'Faces/',    # directory containing image stimluli
-    'imageNames': ['R0_B100.jpg','R25_B75.jpg','R50_B50.jpg','R75_B25.jpg','R100_B0.jpg'],   # images will be selected randomly (without replacement) from this list of files in imageDir.
-                  # Corresponding Port codes will be 1-len(imageNames) for versions 2 & 4, len(imageNames)-1 for versions 1 & 3 (to match increasig CSplus level). 
+    'imageNames': ['ER3_trainingface1.jpg','ER3_trainingface2.jpg'],   # images will be selected randomly (without replacement) from this list of files in imageDir.
 # declare prompt files
     'skipPrompts': False,     # go right to the scanner-wait page
     'promptFile1': 'Prompts/ERTrainingPrompts1.txt', # Name of text file containing prompts shown before the Mood VAS practice 
@@ -62,7 +66,7 @@ params = {
     'questionSelectAdvances': False,
 # parallel port parameters
     'sendPortEvents': True, # send event markers to biopac computer via parallel port
-    'portAddress': 0xE050, # 0x0378, # address of parallel port
+    'portAddress': 0xD050, # 0x0378, # address of parallel port
     'codeBaseline': 31, # parallel port code for baseline period (make sure it's greater than nBlocks*2*len(imageNames)!)
     'codeVas': 32, # parallel port code for mood ratings (make sure it's greater than nBlocks*2*len(imageNames)!)
 # declare display parameters
@@ -70,6 +74,7 @@ params = {
     'screenToShow': 0,        # display on primary screen (0) or secondary (1)?
     'fixCrossSize': 50,       # size of cross, in pixels
     'fixCrossPos': [0,0],     # (x,y) pos of fixation cross displayed before each stimulus (for gaze drift correction)
+    'faceHeight': 2.,         # in norm units: 2 = height of screen
     'screenColor':(120,120,120),    # (120,120,120) in rgb space: (r,g,b) all between 0 and 255
     'textColor': (-1,-1,-1),  # color of text outside of VAS
     'moodVasScreenColor': (110,110,200),  # background behind mood VAS and its pre-VAS prompt. Ideally luminance-matched to screen color via luminance meter/app, else keep in mind gamma correction Y = 0.2126 * R + 0.7152 * G + 0.0722 * B
@@ -97,13 +102,11 @@ scriptName = os.path.splitext(scriptName)[0] # remove extension
 try: # try to get a previous parameters file
     expInfo = fromFile('%s-lastExpInfo.psydat'%scriptName)
     expInfo['session'] +=1 # automatically increment session number
-    expInfo['version'] = ['1','2','3','4','5','6','7','8']
     expInfo['paramsFile'] = [expInfo['paramsFile'],'Load...']
 except: # if not there then use a default set
     expInfo = {
         'subject':'1', 
         'session': 1, 
-        'version': ['1','2','3','4','5','6','7','8'], # group determining which stim is CS+
         'skipPrompts':False, 
         'sendPortEvents': True,
         'paramsFile':['DEFAULT','Load...']}
@@ -112,7 +115,7 @@ if saveParams:
     expInfo['paramsFile'] = [newParamsFilename,'Load...']
 
 #present a dialogue to change select params
-dlg = gui.DlgFromDict(expInfo, title=scriptName, order=['subject','session','version','skipPrompts','sendPortEvents','paramsFile'])
+dlg = gui.DlgFromDict(expInfo, title=scriptName, order=['subject','session','skipPrompts','sendPortEvents','paramsFile'])
 if not dlg.OK:
     core.quit() # the user hit cancel, so exit
 
@@ -135,10 +138,10 @@ for flowItem in ['skipPrompts','sendPortEvents']:
 
 
 # print params to Output
-print 'params = {'
+print('params = {')
 for key in sorted(params.keys()):
-    print "   '%s': %s"%(key,params[key]) # print each value as-is (no quotes)
-print '}'
+    print("   '%s': %s"%(key,params[key])) # print each value as-is (no quotes)
+print('}')
     
 # save experimental info
 toFile('%s-lastExpInfo.psydat'%scriptName, expInfo)#save params to file for next time
@@ -151,7 +154,6 @@ logging.log(level=logging.INFO, msg='---START PARAMETERS---')
 logging.log(level=logging.INFO, msg='filename: %s'%logFilename)
 logging.log(level=logging.INFO, msg='subject: %s'%expInfo['subject'])
 logging.log(level=logging.INFO, msg='session: %s'%expInfo['session'])
-logging.log(level=logging.INFO, msg='version: %s'%expInfo['version'])
 logging.log(level=logging.INFO, msg='date: %s'%dateStr)
 # log everything in the params struct
 for key in sorted(params.keys()): # in alphabetical order
@@ -169,7 +171,7 @@ if params['sendPortEvents']:
     port = parallel.ParallelPort(address=params['portAddress'])
     port.setData(0) # initialize to all zeros
 else:
-    print "Parallel port not used."
+    print("Parallel port not used.")
     
 
 # ========================== #
@@ -192,27 +194,18 @@ duration = params['fixCrossDur'] # duration (for brevity)
 
 # create text stimuli
 message1 = visual.TextStim(win, pos=[0,+.4], wrapWidth=1.5, color=params['textColor'], alignHoriz='center', name='topMsg', text="aaa",units='norm')
-message2 = visual.TextStim(win, pos=[0,-.6], wrapWidth=1.5, color=params['textColor'], alignHoriz='center', name='bottomMsg', text="bbb",units='norm')
+message2 = visual.TextStim(win, pos=[0,-.4], wrapWidth=1.5, color=params['textColor'], alignHoriz='center', name='bottomMsg', text="bbb",units='norm')
 
 # get stimulus files
 allImages = [params['imageDir'] + name for name in params['imageNames']] # assemble filenames: <imageDir>/<imageNames>.
-# create corresponding names & codes
-if int(expInfo['version']) in [2,4,6,8]: # if it's one of these versions, first in list params['imageNames'] list is CS+0.
-    allCodes = range(1,len(allImages)+1)
-    allNames = ['CSplus0','CSplus25','CSplus50','CSplus75','CSplus100']
-else: # if it's version 1, 3, 5, or 7, reverse order
-    allCodes = range(len(allImages),0,-1)
-    allNames = ['CSplus100','CSplus75','CSplus50','CSplus25','CSplus0']
-    
-print('%d images loaded from %s'%(len(allImages),params['imageDir']))
-# make sure there are enough images
-if len(allImages)<params['nTrialsPerBlock']:
-    raise ValueError("# images found in '%s' (%d) is less than # trials (%d)!"%(params['imageDir'],len(allImages),params['nTrials']))
+allNames = ['CSplus-1','CSplus-2'] # in main task this is CSplusX...
+allCodes = list(range(1,len(allImages)+1)) # codes sent to parallel port when each image is displayed
 
 # initialize main image stimulus
 imageName = allImages[0] # initialize with first image
-stimImage = visual.ImageStim(win, pos=[0.,0.3], name='ImageStimulus',image=imageName, units='norm', size=[0.7,1.0])
-
+stimImage = visual.ImageStim(win, pos=[0.,0.], name='ImageStimulus',image=imageName, units='norm')
+aspectRatio = float(stimImage.size[0])/stimImage.size[1];
+stimImage.size = (aspectRatio*params['faceHeight'], params['faceHeight']); # to maintain aspect ratio
 
 # read prompts, questions and answers from text files
 [topPrompts1,bottomPrompts1] = BasicPromptTools.ParsePromptFile(params['promptFile1'])
@@ -228,7 +221,7 @@ print('%d questions loaded from %s'%(len(questions),params['faceQuestionFile']))
 print('%d questions loaded from %s'%(len(questions_vas1),params['moodQuestionFile1']))
 
 # declare order of blocks for later randomization
-blockOrder = range(params['nBlocksPerGroup'])
+blockOrder = list(range(params['nBlocksPerGroup']))
 
 
 # ============================ #
@@ -324,7 +317,7 @@ def ShowImage(imageFile, stimDur=float('Inf'),imageName='image'):
     
 
 # Run a set of visual analog scale (VAS) questions
-def RunVas(questions,options,pos=(0.,-.5),scaleTextPos=[0.,-0.3],questionDur=params['questionDur'],isEndedByKeypress=params['questionSelectAdvances'],name='Vas'):
+def RunVas(questions,options,pos=(0.,-0.25),scaleTextPos=[0.,0.25],questionDur=params['questionDur'],isEndedByKeypress=params['questionSelectAdvances'],name='Vas'):
     
     # wait until it's time
     WaitForFlipTime()
@@ -357,7 +350,7 @@ def RunMoodVas(questions,options,name='MoodVas'):
     
     # Display this VAS
     win.callOnFlip(SetPortData,data=params['codeVas'])
-    RunVas(questions,options,pos=(0,0.),scaleTextPos=[0,0.5],questionDur=float("inf"), isEndedByKeypress=True,name=name)
+    RunVas(questions,options,questionDur=float("inf"), isEndedByKeypress=True,name=name)
     
     # Set screen color back
     win.color = params['screenColor']
@@ -389,13 +382,13 @@ def DoRun(allImages,allCodes,allNames):
     win.flip()
     AddToFlipTime(params['tBaseline'])
     
+    # randomize order of blocks
+    random.shuffle(blockOrder)
     
     # RUN GROUP OF BLOCKS
     for iGroup in range(params['nGroupsPerRun']):
         # Log state of experiment
         logging.log(level=logging.EXP,msg='==== START GROUP %d/%d ===='%(iGroup+1,params['nGroupsPerRun']))
-        # randomize order of blocks
-        random.shuffle(blockOrder)
         
         # RUN BLOCK
         for iBlock in range(params['nBlocksPerGroup']):
@@ -413,19 +406,28 @@ def DoRun(allImages,allCodes,allNames):
             
             # RUN TRIAL
             for iTrial in range(params['nTrialsPerBlock']):
+                # get randomized stim time
+                stimDur = random.uniform(params['tStimMin'],params['tStimMax'])
                 # display image
                 portCode = len(allCodes)*(blockOrder[iBlock]) + allCodes[iTrial]
                 win.callOnFlip(SetPortData,data=portCode)
-                ShowImage(imageFile=allImages[iTrial],stimDur=params['tStim'],imageName=allNames[iTrial])
+                ShowImage(imageFile=allImages[iTrial],stimDur=stimDur,imageName=allNames[iTrial])
                 
-                # Add image to VAS
-                stimImage.autoDraw = True
+                # get randomized MSI (mid-stim interval)
+                tMsi = random.uniform(params['tMsiMin'],params['tMsiMax'])
+                # Display the fixation cross
+                fixation.draw() # draw it
+                win.logOnFlip(level=logging.EXP, msg='Display Fixation')
+                win.callOnFlip(SetPortData,data=0)
+                # VAS keeps control to the end, so no need to wait for flip time
+                WaitForFlipTime()
+                win.flip()
+                AddToFlipTime(tMsi)
+                
                 # Display VAS
                 portCode = len(allCodes)*(blockOrder[iBlock]+2) + allCodes[iTrial]
                 win.callOnFlip(SetPortData,data=portCode)
                 RunVas([questions[blockOrder[iBlock]]],[options[blockOrder[iBlock]]],name='ImageRating')
-                # Remove image
-                stimImage.autoDraw = False
                 
                 # get randomized ISI
                 tIsi = random.uniform(params['tIsiMin'],params['tIsiMax'])
