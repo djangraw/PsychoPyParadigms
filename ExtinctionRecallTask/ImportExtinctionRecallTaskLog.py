@@ -8,6 +8,7 @@ Helper functions for ImportExtinctionRecallTaskLog_batch.py.
 Created 1/3/19 by DJ.
 Updated 1/10/19 by DJ - adjusted to new VAS logging format, added GetVasTypes.
 Updated 1/11/19 by DJ - bug fixes, comments.
+Updated 2/25/19 by DJ - renamed PostDummyRun to PostRun3, stopped assuming sound check response was a float.
 """
 
 # Import full log (including keypresses)
@@ -83,7 +84,7 @@ def ImportExtinctionRecallTaskLog(logFile):
                 if isSoundCheck: # sound check is on
                     # record response and RT for sound check
                     soundCheckRT = float(data[0])-tSoundCheck
-                    soundCheckResp = float(data[3])==params['questionDownKey']
+                    soundCheckResp = data[3]==str(params['questionDownKey'])
                     isSoundCheck = False;  
             elif data[2]=='Display': # time and stim presented
                 dfDisp.loc[iDisp,'t'] = float(data[0])
@@ -302,7 +303,7 @@ def ImportExtinctionRecallTaskLog_VasOnly(logFile):
             elif isSoundCheck and data[2]=='Keypress:':
                 # record button press and RT
                 soundCheckRT = float(data[0])-tSoundCheck
-                soundCheckResp = float(data[3])==params['questionDownKey']
+                soundCheckResp = data[3]==str(params['questionDownKey'])
                 isSoundCheck = False;                
 
     
@@ -342,7 +343,7 @@ def GetVasTypes(params,dfMoodVas,isTraining=False):
     if isTraining:
         vasGroups = ['PreRun1']
     else:
-        vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostDummyRun']
+        vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostRun3']
     magicWords = ['anxious','tired','worried are','mood','doing','feared']
     
     # check each group file for magic words
@@ -388,7 +389,7 @@ def SaveVasFigures(params,dfMoodVas,dfImageVas,outDir,outPrefix='ERTask'):
     if outPrefix=='ERTraining':
         vasGroups=['PreRun1']
     else:
-        vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostDummyRun'] 
+        vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostRun3'] 
     vasTypes = ['anxious','tired','worried','mood','doing','feared']
 #    vasTypes = dfMoodVas.type.unique()
     
@@ -465,7 +466,7 @@ def GetSingleVasLine(params,dfVas,isTraining=False):
     if isTraining:
         vasGroups = ['PreRun1']
     else:
-        vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostDummyRun'] # shorthand for each VAS group based on their position in the task
+        vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostRun3'] # shorthand for each VAS group based on their position in the task
     vasTypes = ['anxious','tired','worried','mood','doing','feared'] # shorthand for VAS0, VAS1, VAS2, etc.
     
     # Convert

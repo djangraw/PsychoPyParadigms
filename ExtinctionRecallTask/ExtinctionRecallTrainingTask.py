@@ -7,10 +7,11 @@ Also have rest and "dummy" runs and present mood ratings to the subject in betwe
 Created 1/11/19 by DJ based on ExtinctionRecallAndVasTask.py.
 Updated 1/22/19 by DJ - modified "range" calls to make compatible with python3
 Updated 2/21/19 by DJ - changed timing, added MSI, moved stimuli, changed names to CSplus-1/2, randomize Q order for each run but not each group
+Updated 2/25/19 by DJ - changed timing, added visible tick marks to VAS
 """
- 
+
 # Import packages
-from psychopy import visual, core, gui, data, event, logging, sound 
+from psychopy import visual, core, gui, data, event, logging 
 from psychopy.tools.filetools import fromFile, toFile # saving and loading parameter files
 import time as ts, numpy as np # for timing and array operations
 import os, glob # for file manipulation
@@ -19,7 +20,6 @@ import random # for randomization of trials
 import RatingScales # for VAS sliding scale
 import pandas as pd # for log parsing
 from ImportExtinctionRecallTaskLog import * # for log parsing
- 
 
 # ====================== #
 # ===== PARAMETERS ===== #
@@ -31,28 +31,28 @@ newParamsFilename = 'ExtinctionRecallTrainingParams.psydat'
 # Declare primary task parameters.
 params = {
 # Declare experiment flow parameters
-    'nTrialsPerBlock': 2, # number of trials in a block
-    'nBlocksPerGroup': 2, # number of blocks in a group (should match number of face VAS questions)
-    'nGroupsPerRun': 1,   # number times this "group" pattern should repeat
+    'nTrialsPerBlock': 2,   # number of trials in a block
+    'nBlocksPerGroup': 2,   # number of blocks in a group (should match number of face VAS questions)
+    'nGroupsPerRun': 1,     # number times this "group" pattern should repeat
 # Declare timing parameters
-    'tStartup': 3.,         # 16., #time displaying instructions while waiting for scanner to reach steady-state
-    'tBaseline': 4.,        # 60., # pause time before starting first stimulus
+    'tStartup': 16.,        # 3., #time displaying instructions while waiting for scanner to reach steady-state
+    'tBaseline': 60.,       # 2., # pause time before starting first stimulus
     'tPreBlockPrompt': 5.,  # duration of prompt before each block
     'tStimMin': 2.,         # min duration of stimulus (in seconds)
     'tStimMax': 4.,         # max duration of stimulus (in seconds)
     'questionDur': 2.5,     # duration of the image rating (in seconds)
-    'tMsiMin': 0.,          # min time between when one stimulus disappears and the next appears (in seconds)
-    'tMsiMax': 4.,          # max time between when one stimulus disappears and the next appears (in seconds)
-    'tIsiMin': 0.2,          # min time between when one stimulus disappears and the next appears (in seconds)
-    'tIsiMax': 9.,          # max time between when one stimulus disappears and the next appears (in seconds)
-    'fixCrossDur': 2,#20.,     # duration of cross fixation before each run
+    'tMsiMin': 0.5,         # min time between when one stimulus disappears and the next appears (in seconds)
+    'tMsiMax': 3.5,         # max time between when one stimulus disappears and the next appears (in seconds)
+    'tIsiMin': 0.5,         # min time between when one stimulus disappears and the next appears (in seconds)
+    'tIsiMax': 7.,          # max time between when one stimulus disappears and the next appears (in seconds)
+    'fixCrossDur': 20.,     # 1.,# duration of cross fixation before each run
 # Declare stimulus and response parameters
-    'preppedKey': 'y',         # key from experimenter that says scanner is ready
-    'triggerKey': '5',        # key from scanner that says scan is starting
-    'imageDir': 'Faces/',    # directory containing image stimluli
+    'preppedKey': 'y',      # key from experimenter that says scanner is ready
+    'triggerKey': '5',      # key from scanner that says scan is starting
+    'imageDir': 'Faces/',   # directory containing image stimluli
     'imageNames': ['ER3_trainingface1.jpg','ER3_trainingface2.jpg'],   # images will be selected randomly (without replacement) from this list of files in imageDir.
 # declare prompt files
-    'skipPrompts': False,     # go right to the scanner-wait page
+    'skipPrompts': False,   # go right to the scanner-wait page
     'promptFile1': 'Prompts/ERTrainingPrompts1.txt', # Name of text file containing prompts shown before the Mood VAS practice 
     'promptFile2': "Prompts/ERTrainingPrompts2.txt", # text file containing prompts shown before the image ratings practice
     'PreVasMsg': "Let's do some rating scales.", # text (not file) shown BEFORE each VAS except the final one
@@ -61,26 +61,26 @@ params = {
     'faceQuestionFile': 'Questions/ERFaceRatingScales.txt', # Name of text file containing image Q&As
     'moodQuestionFile1': 'Questions/ERVas1RatingScales.txt', # Name of text file containing mood Q&As presented before sound check
     'questionDownKey': '4', # red on fORP
-    'questionUpKey':'2', # yellow on fORP
+    'questionUpKey':'2',    # yellow on fORP
     'questionSelectKey':'3', # green on fORP
     'questionSelectAdvances': False,
 # parallel port parameters
     'sendPortEvents': True, # send event markers to biopac computer via parallel port
-    'portAddress': 0xD050, # 0x0378, # address of parallel port
-    'codeBaseline': 31, # parallel port code for baseline period (make sure it's greater than nBlocks*2*len(imageNames)!)
-    'codeVas': 32, # parallel port code for mood ratings (make sure it's greater than nBlocks*2*len(imageNames)!)
+    'portAddress': 0xD050,  # 0x0378, # address of parallel port
+    'codeBaseline': 31,     # parallel port code for baseline period (make sure it's greater than nBlocks*2*len(imageNames)!)
+    'codeVas': 32,          # parallel port code for mood ratings (make sure it's greater than nBlocks*2*len(imageNames)!)
 # declare display parameters
-    'fullScreen': True,       # run in full screen mode?
-    'screenToShow': 0,        # display on primary screen (0) or secondary (1)?
-    'fixCrossSize': 50,       # size of cross, in pixels
-    'fixCrossPos': [0,0],     # (x,y) pos of fixation cross displayed before each stimulus (for gaze drift correction)
-    'faceHeight': 2.,         # in norm units: 2 = height of screen
-    'screenColor':(120,120,120),    # (120,120,120) in rgb space: (r,g,b) all between 0 and 255
+    'fullScreen': True,     # run in full screen mode?
+    'screenToShow': 0,      # display on primary screen (0) or secondary (1)?
+    'fixCrossSize': 50,     # size of cross, in pixels
+    'fixCrossPos': [0,0],   # (x,y) pos of fixation cross displayed before each stimulus (for gaze drift correction)
+    'faceHeight': 2.,       # in norm units: 2 = height of screen
+    'screenColor':(120,120,120),    # (120,120,120) in rgb255 space: (r,g,b) all between 0 and 255
     'textColor': (-1,-1,-1),  # color of text outside of VAS
     'moodVasScreenColor': (110,110,200),  # background behind mood VAS and its pre-VAS prompt. Ideally luminance-matched to screen color via luminance meter/app, else keep in mind gamma correction Y = 0.2126 * R + 0.7152 * G + 0.0722 * B
     'vasTextColor': (-1,-1,-1), # color of text in both VAS types (-1,-1,-1) = black
-    'vasMarkerSize': 0.1,     # in norm units (2 = whole screen)
-    'vasLabelYDist': 0.1,     # distance below line that VAS label/option text should be, in norm units
+    'vasMarkerSize': 0.1,   # in norm units (2 = whole screen)
+    'vasLabelYDist': 0.1,   # distance below line that VAS label/option text should be, in norm units
     'screenRes': (1024,768) # screen resolution (hard-coded because AppKit isn't available on PCs)
 }
 
@@ -326,7 +326,8 @@ def RunVas(questions,options,pos=(0.,-0.25),scaleTextPos=[0.,0.25],questionDur=p
     [rating,decisionTime,choiceHistory] = RatingScales.ShowVAS(questions,options, win, questionDur=questionDur, \
         upKey=params['questionUpKey'], downKey=params['questionDownKey'], selectKey=params['questionSelectKey'],\
         isEndedByKeypress=isEndedByKeypress, textColor=params['vasTextColor'], name=name, pos=pos,\
-        scaleTextPos=scaleTextPos, labelYPos=pos[1]-params['vasLabelYDist'], markerSize=params['vasMarkerSize'])
+        scaleTextPos=scaleTextPos, labelYPos=pos[1]-params['vasLabelYDist'], markerSize=params['vasMarkerSize'],\
+        tickHeight=1,tickLabelWidth = 0.9)
     
     # Update next stim time
     if isEndedByKeypress:

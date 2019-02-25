@@ -1,27 +1,39 @@
 ### QUESTION 1: Anxiety
-
 ?How anxious do you feel right now?
-
 -Not anxious
+-
+-
+-
 -Extremely anxious
 
 ### QUESTION 2: Tired
 ?How tired do you feel right now? 
 -Not tired
+-
+-
+-
 -Extremely tired
+
 ### QUESTION 3: Worried
 ?How worried are you about \nthe next part of the experiment? 
-
 -Not worried
+-
+-
+-
 -Extremely worried
+
 ### QUESTION 4: Mood
 ?How is your mood right now?
 -Best mood ever
-
+-
+-
+-
 -Worst mood ever
-
 
 ### QUESTION 5: Next Part
 ?How much do you feel like doing \nthe next part of the experiment? 
 -Very much
+-
+-
+-
 -Not much at all

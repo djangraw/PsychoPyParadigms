@@ -16,6 +16,7 @@ Updated 1/10/19 by DJ - added year to datestring, incorporated log parsing
 Updated 1/11/19 by DJ - fixed "versions" check, RunMoodVas end delays, comments
 Updated 1/22/19 by DJ - modified "range" calls to make compatible with python3
 Updated 2/21/19 by DJ - changed timing, added MSI, removed dummy run, moved stimuli, 15 groups/run, randomize Q order for each run but not each group
+Updated 2/25/19 by DJ - switched to 3 runs, 5 groups/run, changed timing, added visible tick marks to VAS, changed final VAS name to PostRun3.
 """
 
 # Import packages
@@ -28,8 +29,6 @@ import random # for randomization of trials
 import RatingScales # for VAS sliding scale
 import pandas as pd # for log parsing
 from ImportExtinctionRecallTaskLog import * # for log parsing
- 
-
 
 # ====================== #
 # ===== PARAMETERS ===== #
@@ -41,30 +40,30 @@ newParamsFilename = 'ExtinctionRecallParams.psydat'
 # Declare primary task parameters.
 params = {
 # Declare experiment flow parameters
-    'nTrialsPerBlock': 5,            # number of trials in a block
-    'nBlocksPerGroup': 2,
-    'nGroupsPerRun': 15,
+    'nTrialsPerBlock': 5,   # number of trials in a block
+    'nBlocksPerGroup': 2,   # number of blocks in a group (should match number of face VAS questions)
+    'nGroupsPerRun': 5,     # number times this "group" pattern should repeat
 # Declare timing parameters
-    'tStartup': 3.,         # 16., #time displaying instructions while waiting for scanner to reach steady-state
-    'tBaseline': 4.,        # 60., # pause time before starting first stimulus
+    'tStartup': 16.,        # 3., #time displaying instructions while waiting for scanner to reach steady-state
+    'tBaseline': 60.,       # 2., # pause time before starting first stimulus
     'tPreBlockPrompt': 5.,  # duration of prompt before each block
     'tStimMin': 2.,         # min duration of stimulus (in seconds)
     'tStimMax': 4.,         # max duration of stimulus (in seconds)
     'questionDur': 2.5,     # duration of the image rating (in seconds)
-    'tMsiMin': 0.,          # min time between when one stimulus disappears and the next appears (in seconds)
-    'tMsiMax': 4.,          # max time between when one stimulus disappears and the next appears (in seconds)
-    'tIsiMin': 0.2,          # min time between when one stimulus disappears and the next appears (in seconds)
-    'tIsiMax': 9.,          # max time between when one stimulus disappears and the next appears (in seconds)
+    'tMsiMin': 0.5,         # min time between when one stimulus disappears and the next appears (in seconds)
+    'tMsiMax': 3.5,         # max time between when one stimulus disappears and the next appears (in seconds)
+    'tIsiMin': 0.5,         # min time between when one stimulus disappears and the next appears (in seconds)
+    'tIsiMax': 7.,          # max time between when one stimulus disappears and the next appears (in seconds)
     'tBreak': 60,           # duration of break between runs
-    'fixCrossDur': 20.,     # duration of cross fixation before each run
+    'fixCrossDur': 20.,     # 1.,# duration of cross fixation before each run
 # Declare stimulus and response parameters
-    'preppedKey': 'y',         # key from experimenter that says scanner is ready
-    'triggerKey': '5',        # key from scanner that says scan is starting
-    'imageDir': 'Faces/',    # directory containing image stimluli
+    'preppedKey': 'y',      # key from experimenter that says scanner is ready
+    'triggerKey': '5',      # key from scanner that says scan is starting
+    'imageDir': 'Faces/',   # directory containing image stimluli
     'imageNames': ['R0_B100.jpg','R25_B75.jpg','R50_B50.jpg','R75_B25.jpg','R100_B0.jpg'],   # images will be selected randomly (without replacement) from this list of files in imageDir.
                   # Corresponding Port codes will be 1-len(imageNames) for versions 2 & 4, len(imageNames)-1 for versions 1 & 3 (to match increasig CSplus level). 
 # declare prompt files
-    'skipPrompts': False,     # go right to the scanner-wait page
+    'skipPrompts': False,   # go right to the scanner-wait page
     'promptFile': 'Prompts/ExtinctionRecallPrompts.txt', # Name of text file containing prompts 
     'PreSoundCheckFile': "Prompts/ExtinctionRecallSoundCheckPrompts.txt", # text file containing prompts shown before the sound check
     'PreVasMsg': "Let's do some rating scales.", # text (not file) shown BEFORE each VAS except the final one
@@ -75,30 +74,30 @@ params = {
     'moodQuestionFile1': 'Questions/ERVas1RatingScales.txt', # Name of text file containing mood Q&As presented before sound check
     'moodQuestionFile2': 'Questions/ERVasRatingScales.txt', # Name of text file containing mood Q&As presented after 1st run
     'moodQuestionFile3': 'Questions/ERVasRatingScales.txt', # Name of text file containing mood Q&As presented after 2nd run
-    'moodQuestionFile4': 'Questions/ERVas4RatingScales.txt', # Name of text file containing mood Q&As presented after final dummy run
+    'moodQuestionFile4': 'Questions/ERVas4RatingScales.txt', # Name of text file containing mood Q&As presented after 3rd run
     'questionDownKey': '4', # red on fORP
-    'questionUpKey':'2', # yellow on fORP
+    'questionUpKey':'2',    # yellow on fORP
     'questionSelectKey':'3', # green on fORP
     'questionSelectAdvances': False, # will locking in an answer advance past an image rating?
 # sound info
     'badSoundFile': "media/tone_noise_rany.wav",
 # parallel port parameters
     'sendPortEvents': True, # send event markers to biopac computer via parallel port
-    'portAddress': 0xD050, #0xE050,  0x0378,  address of parallel port
-    'codeBaseline': 31, # parallel port code for baseline period (make sure it's greater than nBlocks*2*len(imageNames)!)
-    'codeVas': 32, # parallel port code for mood ratings (make sure it's greater than nBlocks*2*len(imageNames)!)
+    'portAddress': 0xD050,  # 0xE050,  0x0378,  address of parallel port
+    'codeBaseline': 31,     # parallel port code for baseline period (make sure it's greater than nBlocks*2*len(imageNames)!)
+    'codeVas': 32,          # parallel port code for mood ratings (make sure it's greater than nBlocks*2*len(imageNames)!)
 # declare display parameters
-    'fullScreen': True,       # run in full screen mode?
-    'screenToShow': 0,        # display on primary screen (0) or secondary (1)?
-    'fixCrossSize': 50,       # size of cross, in pixels
-    'fixCrossPos': [0,0],     # (x,y) pos of fixation cross displayed before each stimulus (for gaze drift correction)
-    'faceHeight': 2.,         # in norm units: 2 = height of screen
-    'screenColor':(120,120,120),    # (120,120,120) in rgb space: (r,g,b) all between 0 and 255
+    'fullScreen': True,     # run in full screen mode?
+    'screenToShow': 0,      # display on primary screen (0) or secondary (1)?
+    'fixCrossSize': 50,     # size of cross, in pixels
+    'fixCrossPos': [0,0],   # (x,y) pos of fixation cross displayed before each stimulus (for gaze drift correction)
+    'faceHeight': 2.,       # in norm units: 2 = height of screen
+    'screenColor':(120,120,120),    # in rgb255 space: (r,g,b) all between 0 and 255
     'textColor': (-1,-1,-1),  # color of text outside of VAS
     'moodVasScreenColor': (110,110,200),  # background behind mood VAS and its pre-VAS prompt. Ideally luminance-matched to screen color via luminance meter/app, else keep in mind gamma correction Y = 0.2126 * R + 0.7152 * G + 0.0722 * B
     'vasTextColor': (-1,-1,-1), # color of text in both VAS types (-1,-1,-1) = black
-    'vasMarkerSize': 0.1,     # in norm units (2 = whole screen)
-    'vasLabelYDist': 0.1,     # distance below line that VAS label/option text should be, in norm units
+    'vasMarkerSize': 0.1,   # in norm units (2 = whole screen)
+    'vasLabelYDist': 0.1,   # distance below line that VAS label/option text should be, in norm units
     'screenRes': (1024,768) # screen resolution (hard-coded because AppKit isn't available on PCs)
 }
 
@@ -370,7 +369,8 @@ def RunVas(questions,options,pos=(0.,-0.25),scaleTextPos=[0.,0.25],questionDur=p
     [rating,decisionTime,choiceHistory] = RatingScales.ShowVAS(questions,options, win, questionDur=questionDur, \
         upKey=params['questionUpKey'], downKey=params['questionDownKey'], selectKey=params['questionSelectKey'],\
         isEndedByKeypress=isEndedByKeypress, textColor=params['vasTextColor'], name=name, pos=pos,\
-        scaleTextPos=scaleTextPos, labelYPos=pos[1]-params['vasLabelYDist'], markerSize=params['vasMarkerSize'])
+        scaleTextPos=scaleTextPos, labelYPos=pos[1]-params['vasLabelYDist'], markerSize=params['vasMarkerSize'],\
+        tickHeight=1,tickLabelWidth = 0.9)
     
     # Update next stim time
     if isEndedByKeypress:
@@ -623,6 +623,9 @@ DoRun(allImages,allCodes,allNames)
 # ---VAS
 RunMoodVas(questions_vas3,options_vas3,name='PostRun2-')
 
+# ---Run 3
+DoRun(allImages,allCodes,allNames)
+
 # ---DonePrompt
 WaitForFlipTime()
 # display done prompt
@@ -630,7 +633,7 @@ if not params['skipPrompts']:
     BasicPromptTools.RunPrompts([params['PreFinalVasMsg']],["Press any button to continue."],win,message1,message2)
 
 # ---VAS
-RunMoodVas(questions_vas4,options_vas4,name='PostDummyRun-')
+RunMoodVas(questions_vas4,options_vas4,name='PostRun3-')
 
 # Log end of experiment
 logging.log(level=logging.EXP, msg='--- END EXPERIMENT ---')
