@@ -11,6 +11,7 @@ Display images to the subject while collecting EyeLink eye tracking data.
 * Updated 1/25/19 by DJ - fixed over-logging during tracker setup
 * Updated 2/5/19 by DJ - changed background color, fixCross pos, pre&post timing
 * Updated 2/6/19 by DJ - made fix cross text instead of shapeStim (to make it thicker), fixed screenRes display in fullscreen mode
+* Updated 3/18/18 by DJ - added ExperimentHandler to cleanly log trial data, param respKeys to specify which responses are allowed
 """
 
 # Import packages
@@ -49,6 +50,7 @@ params = {
 # Declare stimulus and response parameters
     'preppedKey': 'y',      # key from experimenter that says scanner is ready
     'triggerKey': '5',      # key from scanner that says scan is starting
+    'respKeys': ['1','2','3','4','space'], # list of all keys the subject can press to respond (make sure this matches the prompts they see)
     'imageDir': 'Images/',  # directory containing image stimluli
     'imageNames': ['oAF01NEFL.png','oAF01NES.png','oAF05NEFR.png',
 'oAF05NES.png','oAF09NEFL.png','oAF09NES.png',
@@ -157,6 +159,12 @@ for key in sorted(params.keys()): # in alphabetical order
 
 logging.log(level=logging.INFO, msg='---END PARAMETERS---')
 
+# Create an ExperimentHandler for simple trial data saving
+thisExp = data.ExperimentHandler(name=scriptName, version='',
+    extraInfo=expInfo, runtimeInfo=None,
+    originPath= __file__,
+    savePickle=False, saveWideText=True,
+    dataFileName=filename)
 
 # ========================== #
 # ===== SET UP STIMULI ===== #
@@ -365,13 +373,20 @@ def AddToFlipTime(tIncrement=1.0):
 def SetFlipTimeToNow():
     tNextFlip[0] = globalClock.getTime()
     
+# Wait until it's time to update the window, logging responses as we go
 def WaitForFlipTime():
+    firstResp = ("","")
     while (globalClock.getTime()<tNextFlip[0]):
-        keyList = event.getKeys()
+        keyList = event.getKeys(params['respKeys']+['q','escape'],timeStamped=globalClock)
         # Check for escape characters
         for key in keyList:
-            if key in ['q','escape']:
+            # record first response
+            if len(firstResp[0])==0:
+                firstResp = key;
+            if key[0] in ['q','escape']:
                 CoolDown()
+    # Return result
+    return firstResp
 
 # Send EyeLink event
 def SendEyeEvent(eventText):
@@ -413,6 +428,7 @@ def RunTrial(imageFile, stimDur=float('Inf'),imageCond=0,tIti=0):
     # Draw image
     stimImage.setImage(imageFile)
     stimImage.draw()
+    # log info
     msgTxt = 'Display %s cond=%d'%(imageFile,imageCond)
     win.logOnFlip(level=logging.EXP, msg=msgTxt)
     win.callOnFlip(SendEyeEvent,msgTxt)
@@ -420,6 +436,8 @@ def RunTrial(imageFile, stimDur=float('Inf'),imageCond=0,tIti=0):
     WaitForFlipTime()
     # flip window to display image
     win.flip()
+    # log stim onset time/info
+    thisExp.addData('image.tOnset',globalClock.getTime())
     # Update next stim time
     AddToFlipTime(stimDur) # add to tNextFlip[0]
 
@@ -427,16 +445,25 @@ def RunTrial(imageFile, stimDur=float('Inf'),imageCond=0,tIti=0):
         # Display the fixation cross
         fixation.draw() # draw it
         win.logOnFlip(level=logging.EXP, msg='Display Fixation')
-        win.callOnFlip(SendEyeEvent,'Display Fixation')
-        # Wait until it's time to display
-        WaitForFlipTime()
-        win.flip()
-        AddToFlipTime(tIti)
-
+        win.callOnFlip(SendEyeEvent,'Display Fixation')        
+    
+    # Wait until it's time to display fixatin/blankscreen (and record first response)
+    firstResp = WaitForFlipTime()
+    win.flip()
+    # log offset time and response
+    thisExp.addData('image.tOffset',globalClock.getTime())
+    thisExp.addData('response.key',firstResp[0])
+    thisExp.addData('response.time', firstResp[1])
+    AddToFlipTime(tIti)
 
 # Handle end of a run
 def CoolDown():
     
+    # Save behavioral data
+    thisExp.nextEntry() # advance data file
+    thisExp.saveAsWideText(filename + '.csv')
+    
+    # stop recording eye data
     pylink.endRealTimeMode()
     pylink.pumpDelay(100)
     error = tk.stopRecording()
@@ -548,6 +575,12 @@ for iTrial in range(params['nTrialsPerRun']):
     else: # last trial: no ITI
         tIti = params['tCoolDown']
         # tIti = 0;
+    # Log trial info
+    if iTrial>0:
+        thisExp.nextEntry() # advance data file
+    thisExp.addData('trial',iTrial+1)
+    thisExp.addData('image.file',allNames[iImg])
+    thisExp.addData('image.condition',conditions[iImg])
     # Display image and fixation
     RunTrial(imageFile=params['imageDir'] + allNames[iImg],stimDur=stimDur[iImg],imageCond=conditions[iImg],tIti=tIti)
 

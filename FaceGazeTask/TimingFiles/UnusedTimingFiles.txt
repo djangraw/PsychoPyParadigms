@@ -1,4 +1,3 @@
-events.0034.txt
 events.0058.txt
 events.0127.txt
 events.0133.txt
