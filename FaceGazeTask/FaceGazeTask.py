@@ -11,7 +11,8 @@ Display images to the subject while collecting EyeLink eye tracking data.
 * Updated 1/25/19 by DJ - fixed over-logging during tracker setup
 * Updated 2/5/19 by DJ - changed background color, fixCross pos, pre&post timing
 * Updated 2/6/19 by DJ - made fix cross text instead of shapeStim (to make it thicker), fixed screenRes display in fullscreen mode
-* Updated 3/18/18 by DJ - added ExperimentHandler to cleanly log trial data, param respKeys to specify which responses are allowed
+* Updated 3/18/19 by DJ - added ExperimentHandler to cleanly log trial data, param respKeys to specify which responses are allowed
+* Updated 3/27/19 by DJ - allow user to decide whether to detect screen resolution automatically or pass it as a parameter.
 """
 
 # Import packages
@@ -63,7 +64,7 @@ params = {
 'C5.png','C6.png','C7.png',
 'C8.png','C9.png','C10.png'], # images will be selected randomly (without replacement) from this list of files in imageDir.
 # declare prompt files
-    'skipPrompts': False,     # go right to the scanner-wait page
+    'skipPrompts': True,     # go right to the scanner-wait page
     'promptFile': 'Prompts/PressSpacePrompts.txt', # Name of text file containing prompts
 # declare timing files
     'timingFileDir': 'TimingFiles/',                             # where the AFNI timing text files sit
@@ -72,7 +73,7 @@ params = {
 # declare display parameters
     'fullScreen': True,         # run in full screen mode?
     'screenToShow': 0,          # display on primary screen (0) or secondary (1)?
-    'screenRes': (0, 0),        # (1040,768),# display size in pixels (overridden by monitor resolution if fullScreen=True)
+    'screenRes': 'auto',        # display (w,h) in pixels (or 'auto' to use the value reported by the fullscreen window.)
     'fixCrossSize': 0.3,        # size of "+" text displayed before each trial (in norm units, 1 = capital letters 1/2 screen height high)
     'fixCrossPos': (0,-0.5),    # (x,y) pos of fixation cross displayed before each stimulus (in norm units from center, for gaze drift correction)
     'screenColor':(0.7,0.7,0.7),# in rgb space: (r,g,b) all between -1 and 1
@@ -176,13 +177,16 @@ tNextFlip = [0.0] # put in a list to make it mutable (weird quirk of python vari
 #create clocks and window
 globalClock = core.Clock()#to keep track of time
 trialClock = core.Clock()#to keep track of time
-win = visual.Window(params['screenRes'], fullscr=params['fullScreen'], allowGUI=False, monitor='testMonitor', screen=params['screenToShow'], units='pix', name='win',color=params['screenColor'])
+if params['screenRes'] == 'auto':
+    win = visual.Window((100,100), fullscr=params['fullScreen'], allowGUI=False, monitor='testMonitor', screen=params['screenToShow'], units='pix', name='win',color=params['screenColor'])
+    params['screenRes'] = (win.size[0],win.size[1])
+else:
+    win = visual.Window(params['screenRes'], fullscr=params['fullScreen'], allowGUI=False, monitor='testMonitor', screen=params['screenToShow'], units='pix', name='win',color=params['screenColor'])
 
 # update screen resolution
-screenRes = (win.size[0]/2,win.size[1]/2)
-scnWidth = screenRes[0]
-scnHeight = screenRes[1]
-print("Actual screenRes = [%d,%d]"%screenRes)
+scnWidth = params['screenRes'][0]
+scnHeight = params['screenRes'][1]
+print("Actual screenRes = [%d,%d]"%params['screenRes'])
 
 # create fixation cross
 fixation = visual.TextStim(win, pos=params['fixCrossPos'], color=params['textColor'], alignHoriz='center', name='fixCross', text="+",height=params['fixCrossSize'],units='norm')
