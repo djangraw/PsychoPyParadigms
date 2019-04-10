@@ -17,6 +17,7 @@ Updated 1/11/19 by DJ - fixed "versions" check, RunMoodVas end delays, comments
 Updated 1/22/19 by DJ - modified "range" calls to make compatible with python3
 Updated 2/21/19 by DJ - changed timing, added MSI, removed dummy run, moved stimuli, 15 groups/run, randomize Q order for each run but not each group
 Updated 2/25/19 by DJ - switched to 3 runs, 5 groups/run, changed timing, added visible tick marks to VAS, changed final VAS name to PostRun3.
+Updated 3/25/19 by GF - added sound check VAS, second sound check & VAS, second break
 """
 
 # Import packages
@@ -45,7 +46,7 @@ params = {
     'nGroupsPerRun': 5,     # number times this "group" pattern should repeat
 # Declare timing parameters
     'tStartup': 16.,        # 3., #time displaying instructions while waiting for scanner to reach steady-state
-    'tBaseline': 60.,       # 2., # pause time before starting first stimulus
+    'tBaseline': 30.,       # 2., # pause time before starting first stimulus
     'tPreBlockPrompt': 5.,  # duration of prompt before each block
     'tStimMin': 2.,         # min duration of stimulus (in seconds)
     'tStimMax': 4.,         # max duration of stimulus (in seconds)
@@ -68,13 +69,15 @@ params = {
     'PreSoundCheckFile': "Prompts/ExtinctionRecallSoundCheckPrompts.txt", # text file containing prompts shown before the sound check
     'PreVasMsg': "Let's do some rating scales.", # text (not file) shown BEFORE each VAS except the final one
     'BreakMsg': "You can rest now.", # text shown during break between runs
-    'PreFinalVasMsg': "We're done!", # text shown before final VAS
+    'BetweenRunsReminderMsg': "Please remember, in this next part, the faces might scream, so be prepared for that.", # text file shown after rest before following run 
+    'PreFinalVasMsg': "Before we continue, let's do some more rating scales", # text shown before final VAS
 # declare VAS info
     'faceQuestionFile': 'Questions/ERFaceRatingScales.txt', # Name of text file containing image Q&As
     'moodQuestionFile1': 'Questions/ERVas1RatingScales.txt', # Name of text file containing mood Q&As presented before sound check
     'moodQuestionFile2': 'Questions/ERVasRatingScales.txt', # Name of text file containing mood Q&As presented after 1st run
     'moodQuestionFile3': 'Questions/ERVasRatingScales.txt', # Name of text file containing mood Q&As presented after 2nd run
     'moodQuestionFile4': 'Questions/ERVas4RatingScales.txt', # Name of text file containing mood Q&As presented after 3rd run
+    'PostSoundCheckFile': 'Questions/PostSoundCheckFile.txt', # Name of text file containing rating scale of volume post sound
     'questionDownKey': '4', # red on fORP
     'questionUpKey':'2',    # yellow on fORP
     'questionSelectKey':'3', # green on fORP
@@ -83,7 +86,7 @@ params = {
     'badSoundFile': "media/tone_noise_rany.wav",
 # parallel port parameters
     'sendPortEvents': True, # send event markers to biopac computer via parallel port
-    'portAddress': 0xD050,  # 0xE050,  0x0378,  address of parallel port
+    'portAddress': 0xE050,  # 0xE050,  0x0378,  address of parallel port
     'codeBaseline': 31,     # parallel port code for baseline period (make sure it's greater than nBlocks*2*len(imageNames)!)
     'codeVas': 32,          # parallel port code for mood ratings (make sure it's greater than nBlocks*2*len(imageNames)!)
 # declare display parameters
@@ -240,7 +243,6 @@ stimImage.size = (aspectRatio*params['faceHeight'], params['faceHeight']); # to 
 # load sound file
 badSound = sound.Sound(params['badSoundFile'])
 
-
 # read prompts, questions and answers from text files
 [topPrompts,bottomPrompts] = BasicPromptTools.ParsePromptFile(params['promptFile'])
 print('%d prompts loaded from %s'%(len(topPrompts),params['promptFile']))
@@ -263,6 +265,8 @@ print('%d questions loaded from %s'%(len(questions_vas3),params['moodQuestionFil
 [questions_vas4,options_vas4,answers_vas4] = BasicPromptTools.ParseQuestionFile(params['moodQuestionFile4'])
 print('%d questions loaded from %s'%(len(questions_vas4),params['moodQuestionFile4']))
 
+[questions_postsoundcheck,options_postsoundcheck,answers_postsoundcheck] = BasicPromptTools.ParseQuestionFile(params['PostSoundCheckFile'])
+print('%d questions loaded from %s'%(len(questions_postsoundcheck),params['PostSoundCheckFile']))
 
 # declare order of blocks for later randomization
 blockOrder = list(range(params['nBlocksPerGroup']))
@@ -379,7 +383,6 @@ def RunVas(questions,options,pos=(0.,-0.25),scaleTextPos=[0.,0.25],questionDur=p
         AddToFlipTime(questionDur*len(questions)) # add question duration * # of questions
 
 
-
 def RunMoodVas(questions,options,name='MoodVas'):
     
     # Wait until it's time
@@ -399,6 +402,16 @@ def RunMoodVas(questions,options,name='MoodVas'):
     # Set screen color back
     win.color = params['screenColor']
     win.flip() # flip so the color change 'takes' right away
+
+def RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='SoundVas'):
+    
+    # Wait until it's time
+    WaitForFlipTime()
+    
+    # Display this VAS
+    win.callOnFlip(SetPortData,data=params['codeVas'])
+    RunVas(questions_postsoundcheck,options_postsoundcheck,questionDur=float("inf"), isEndedByKeypress=True,name=name)
+
 
 def DoRun(allImages,allCodes,allNames):
     # wait for scanner
@@ -500,11 +513,12 @@ def ProcessDataLog():
     
     imageOutDir = os.path.dirname(logFilename)
     outMoodTable = "%s/ERTask-MoodVasTable.xlsx"%imageOutDir
+    outSoundTable = "%s/ERTask-SoundVasTable.xlsx"%imageOutDir
     
     # import
-    readParams,dfMoodVas,dfImageVas = ImportExtinctionRecallTaskLog_VasOnly(logFilename)
+    readParams,dfMoodVas,dfSoundVas,dfImageVas = ImportExtinctionRecallTaskLog_VasOnly(logFilename)
     # make figure
-    SaveVasFigures(readParams,dfMoodVas,dfImageVas,imageOutDir)
+    SaveVasFigures(readParams,dfMoodVas,dfSoundVas,dfImageVas,imageOutDir)
     # convert to single line
     dfMoodVas_singleRow = GetSingleVasLine(readParams,dfMoodVas)
     
@@ -592,11 +606,11 @@ core.wait(0.5)
 
 # play sound
 badSound.play()
+# wait briefly
+core.wait(1.5)
 
-# wait for keypress
-thisKey = event.waitKeys()
-if thisKey[0] in ['q','escape']: # quit if excape keypress
-    core.quit()
+# ---VAS
+RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='PostSoundCheck-')
 
 # ---Run 1
 DoRun(allImages,allCodes,allNames)
@@ -617,11 +631,70 @@ win.flip()
 AddToFlipTime(params['tBreak'])
 WaitForFlipTime()
 
+# ---Sound Check
+# show instructions
+if not params['skipPrompts']:
+    BasicPromptTools.RunPrompts(topPrompts_sound,bottomPrompts_sound,win,message1,message2)
+
+# show blank screen
+win.logOnFlip(level=logging.EXP, msg='Display Blank')
+win.flip()
+# wait briefly
+core.wait(0.5)
+
+# play sound
+badSound.play()
+# wait briefly
+core.wait(1.5)
+
+# ---VAS
+RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='PostSoundCheck-')
+
+#---reminder prompt 
+if not params['skipPrompts']:
+    BasicPromptTools.RunPrompts([params['BetweenRunsReminderMsg']],["Press any button to continue."],win,message1,message2)
+
 # ---Run 2
 DoRun(allImages,allCodes,allNames)
 
 # ---VAS
 RunMoodVas(questions_vas3,options_vas3,name='PostRun2-')
+
+# ---break (60s)
+# display break prompt
+message1.text = params['BreakMsg']
+# Set up display
+win.logOnFlip(level=logging.EXP, msg='Display BreakMsg')
+message1.draw()
+# Wait until it's time to display
+WaitForFlipTime()
+# Display prompt
+win.flip()
+AddToFlipTime(params['tBreak'])
+WaitForFlipTime()
+
+# ---Sound Check
+# show instructions
+if not params['skipPrompts']:
+    BasicPromptTools.RunPrompts(topPrompts_sound,bottomPrompts_sound,win,message1,message2)
+
+# show blank screen
+win.logOnFlip(level=logging.EXP, msg='Display Blank')
+win.flip()
+# wait briefly
+core.wait(0.5)
+
+# play sound
+badSound.play()
+# wait briefly
+core.wait(1.5)
+
+# ---VAS
+RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='PostSoundCheck-')
+
+#---reminder prompt 
+if not params['skipPrompts']:
+    BasicPromptTools.RunPrompts([params['BetweenRunsReminderMsg']],["Press any button to continue."],win,message1,message2)
 
 # ---Run 3
 DoRun(allImages,allCodes,allNames)
