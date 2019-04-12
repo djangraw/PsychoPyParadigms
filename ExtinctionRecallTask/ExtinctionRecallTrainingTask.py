@@ -8,6 +8,7 @@ Created 1/11/19 by DJ based on ExtinctionRecallAndVasTask.py.
 Updated 1/22/19 by DJ - modified "range" calls to make compatible with python3
 Updated 2/21/19 by DJ - changed timing, added MSI, moved stimuli, changed names to CSplus-1/2, randomize Q order for each run but not each group
 Updated 2/25/19 by DJ - changed timing, added visible tick marks to VAS
+Updated 3/25/19 by GF - added second run and set of prompts
 """
 
 # Import packages
@@ -35,8 +36,8 @@ params = {
     'nBlocksPerGroup': 2,   # number of blocks in a group (should match number of face VAS questions)
     'nGroupsPerRun': 1,     # number times this "group" pattern should repeat
 # Declare timing parameters
-    'tStartup': 16.,        # 3., #time displaying instructions while waiting for scanner to reach steady-state
-    'tBaseline': 60.,       # 2., # pause time before starting first stimulus
+    'tStartup': 6.,        # 3., #time displaying instructions while waiting for scanner to reach steady-state
+    'tBaseline': 6.,       # 2., # pause time before starting first stimulus
     'tPreBlockPrompt': 5.,  # duration of prompt before each block
     'tStimMin': 2.,         # min duration of stimulus (in seconds)
     'tStimMax': 4.,         # max duration of stimulus (in seconds)
@@ -45,7 +46,7 @@ params = {
     'tMsiMax': 3.5,         # max time between when one stimulus disappears and the next appears (in seconds)
     'tIsiMin': 0.5,         # min time between when one stimulus disappears and the next appears (in seconds)
     'tIsiMax': 7.,          # max time between when one stimulus disappears and the next appears (in seconds)
-    'fixCrossDur': 20.,     # 1.,# duration of cross fixation before each run
+    'fixCrossDur': 6.,     # 1.,# duration of cross fixation before each run
 # Declare stimulus and response parameters
     'preppedKey': 'y',      # key from experimenter that says scanner is ready
     'triggerKey': '5',      # key from scanner that says scan is starting
@@ -55,6 +56,7 @@ params = {
     'skipPrompts': False,   # go right to the scanner-wait page
     'promptFile1': 'Prompts/ERTrainingPrompts1.txt', # Name of text file containing prompts shown before the Mood VAS practice 
     'promptFile2': "Prompts/ERTrainingPrompts2.txt", # text file containing prompts shown before the image ratings practice
+    'promptFile3': 'Prompts/ERTrainingPrompts3.txt', # text file containing prompts to make sure participant understands task
     'PreVasMsg': "Let's do some rating scales.", # text (not file) shown BEFORE each VAS except the final one
     'PreFinalVasMsg': "We're done!", # text shown before final VAS
 # declare VAS info
@@ -214,6 +216,9 @@ print('%d prompts loaded from %s'%(len(topPrompts1),params['promptFile1']))
 [topPrompts2,bottomPrompts2] = BasicPromptTools.ParsePromptFile(params['promptFile2'])
 print('%d prompts loaded from %s'%(len(topPrompts2),params['promptFile2']))
 
+[topPrompts3,bottomPrompts3] = BasicPromptTools.ParsePromptFile(params['promptFile3'])
+print('%d prompts loaded from %s'%(len(topPrompts3),params['promptFile3']))
+
 [questions,options,answers] = BasicPromptTools.ParseQuestionFile(params['faceQuestionFile'])
 print('%d questions loaded from %s'%(len(questions),params['faceQuestionFile']))
 
@@ -362,14 +367,6 @@ def DoRun(allImages,allCodes,allNames):
     WaitForScanner() # includes SetFlipTimeToNow
     # Log state of experiment
     logging.log(level=logging.EXP,msg='===== START RUN =====')
-    
-    # Display instructions while waiting to reach steady state
-    win.logOnFlip(level=logging.EXP, msg='Display RestInstructions')
-    message1.text = 'For the next minute or so, stare at the cross and rest.'
-    message1.draw()
-    win.flip()
-    AddToFlipTime(params['tStartup'])
-    
     
     # display fixation before first stimulus
     fixation.draw()
@@ -542,6 +539,14 @@ if not params['skipPrompts']:
     BasicPromptTools.RunPrompts(topPrompts2,bottomPrompts2,win,message1,message2)
 
 # ---Run 1
+DoRun(allImages,allCodes,allNames)
+
+# ---Instructions
+# display prompts
+if not params['skipPrompts']:
+    BasicPromptTools.RunPrompts(topPrompts3,bottomPrompts3,win,message1,message2)
+
+# ---Run 2
 DoRun(allImages,allCodes,allNames)
 
 # Log end of experiment

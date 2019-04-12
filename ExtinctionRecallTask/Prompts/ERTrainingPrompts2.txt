@@ -1,9 +1,18 @@
 ### Page 1 ###
-+Great job! In this task, you will also see pictures of a person's face, just like you did a couple of weeks ago. You will be asked to answer questions about the person's face. Now you are going to practice using the slider by first looking at a person's face and then answering questions about that person's face. 
++Great job! Now, do you remember a couple of weeks ago when you watched a person's face and the face screamed? In this task, you will see pictures of faces again, and they might scream.
 -Press any button to continue.
 ### Page 2 ###
-+Your job will be to move the slider back and forth using the same buttons that you did to answer how you were feeling before.
++After you see a face, there are two questions you will be asked about that face. One question is: "how afraid were you just now?" 
 -Press any button to continue.
 ### Page 3 ###
-+We are going to practice using the slider now for these faces.
++When we ask "how afraid were you just now?," we want to know how afraid you are of the face that you JUST saw. 
+-Press any button to continue.
+### Page 4 ###
++Another question you will be asked about that face is: "how likely was she to scream before?"
+-Press any button to continue.
+### Page 5 ###
++When we ask "how likely was she to scream before?," we want you to remember back to when you saw this face a couple of weeks ago. Think about if this face screamed BEFORE, or in other words, if this face screamed when you saw it a couple of weeks ago. 
+-Press any button to continue.
+### Page 6 ###
++To answer these questions, you will move the slider back and forth using the same buttons that you did to answer how you were feeling. We are going to practice using the slider now to answer questions about these faces.
 -Press any button to begin.

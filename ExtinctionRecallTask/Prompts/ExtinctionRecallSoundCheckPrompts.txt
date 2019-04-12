@@ -1,6 +1,6 @@
 ### Page 1 ###
 
-+We are now going to run a quick sound check. Click the red button if you hear a sound and click the yellow button if you do not hear a sound.
++We want to make sure you will be able to hear the sounds we play through the headphones. We are going to play a test sound for you now. After you hear the sound, you will be asked to rate how loud it was. Listen carefully. 
 -Press any button to continue.
 
 ### Page 2 ###

@@ -1,6 +1,11 @@
 ### Page 1 ###
-+In this task, you will be asked to answer questions about how you are feeling. To answer these questions, you are going to use a slider. 
++Before and after this task, you will be asked questions about how you are feeling. 
 -Press any button to continue.
-### Page 2 ###
-+We are going to practice using the slider now by answering questions about how you are feeling. To slide right, press the yellow button. To slide left, press the red button. To lock your final answer, press the green button. 
+### Page 2###
++To answer these questions, you are going to use a slider. To slide right, press the yellow button. To slide left, press the red button. To lock your final answer, press the green button.
+-Press any button to continue.
+### Page 3 ###
++We are going to practice using the slider now by answering questions about how you are feeling. Are you ready?
 -Press any button to begin.
+
+
