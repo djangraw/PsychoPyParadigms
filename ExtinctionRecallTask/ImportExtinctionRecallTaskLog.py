@@ -9,16 +9,22 @@ Created 1/3/19 by DJ.
 Updated 1/10/19 by DJ - adjusted to new VAS logging format, added GetVasTypes.
 Updated 1/11/19 by DJ - bug fixes, comments.
 Updated 2/25/19 by DJ - renamed PostDummyRun to PostRun3, stopped assuming sound check response was a float.
+Updated 4/12/19 by DJ - updated to work from command line and with new task version (adding Sound VAS).
 """
+
+# Import packages
+import time           # for timing analyses
+import numpy as np    # for math
+import pandas as pd   # for tables
+from matplotlib import pyplot as plt # for plotting
+import ast            # for parameter parsing
+import re             # for splitting strings
+import argparse       # for command-line arguments
+from glob import glob # for finding files
+import os             # for handling paths
 
 # Import full log (including keypresses)
 def ImportExtinctionRecallTaskLog(logFile):
-
-    # Import packages
-    import time
-    import pandas as pd
-    import ast # for parameter parsing
-    import re # for splitting strings
     
     # === Read in PsychoPy log
     
@@ -47,9 +53,6 @@ def ImportExtinctionRecallTaskLog(logFile):
     block = 0
     trial = 0
     isParams = False;
-    isSoundCheck = False;
-    soundCheckResp = np.nan;
-    soundCheckRT = np.nan;
     
     # Read each line
     for line in allLines:
@@ -81,11 +84,6 @@ def ImportExtinctionRecallTaskLog(logFile):
                 dfKey.loc[iKey,'t'] = float(data[0])
                 dfKey.loc[iKey,'key'] = data[3]
                 iKey +=1;
-                if isSoundCheck: # sound check is on
-                    # record response and RT for sound check
-                    soundCheckRT = float(data[0])-tSoundCheck
-                    soundCheckResp = data[3]==str(params['questionDownKey'])
-                    isSoundCheck = False;  
             elif data[2]=='Display': # time and stim presented
                 dfDisp.loc[iDisp,'t'] = float(data[0])
                 dfDisp.loc[iDisp,'stim'] = data[3]
@@ -150,46 +148,43 @@ def ImportExtinctionRecallTaskLog(logFile):
                     dfVas.loc[iVas,'timeToFirstPress'] = timeToPress
                     # increment VAS index
                     iVas +=1;        
-            elif data[2]=='Sound': # sound check
-                tSoundCheck = float(data[0])
-                isSoundCheck = True;
     print('Done! Took %.1f seconds.'%(time.time()-t))
     
     
     print('Extracting VAS data...')
     t = time.time()
-    # Parse out mood VAS results
+    # Parse out mood and sound VAS results
     dfMoodVas = dfVas.loc[pd.isnull(dfVas['imageFile']),:]
     dfMoodVas = dfMoodVas.drop(['imageFile','CSplusPercent','run','group','block','trial','tImage'],1)
+    # split into mood & sound
+    dfSoundVas = dfMoodVas.loc[dfMoodVas.name.str.startswith('SoundCheck'),:]
+    dfMoodVas = dfMoodVas.loc[~dfMoodVas.name.str.startswith('SoundCheck'),:]
+    # reset indices
+    dfSoundVas = dfSoundVas.reset_index(drop=True)
     dfMoodVas = dfMoodVas.reset_index(drop=True)
     
     # Parse out image VAS results
     dfImageVas = dfVas.loc[pd.notnull(dfVas['imageFile']),:]
     dfImageVas = dfImageVas.drop('name',1)
-    if not np.isnan(soundCheckResp):
-        # add sound check info
-        dfImageVas['soundCheckResp'] = soundCheckResp
-        dfImageVas['soundCheckRT'] = soundCheckRT
 
     # add Mood VAS types
-    dfMoodVas = GetVasTypes(params,dfMoodVas)
+    isTraining = 'Training' in logFile
+    dfMoodVas = GetVasTypes(params,dfMoodVas,isTraining)
+    
+    # add Sound VAS types (assuming only one question per sound!!!)
+    dfSoundVas['group']=np.arange(dfSoundVas.shape[0]) 
+    dfSoundVas['groupName']=[x.split('-')[0] for x in dfSoundVas.name]
+    dfSoundVas['type']='loud'
     
     print('Done! Took %.1f seconds.'%(time.time()-t))
 
     # Return results
-    return params, dfMoodVas, dfImageVas, dfKey, dfDisp, dfSync, dfBlock
+    return params, dfMoodVas, dfSoundVas, dfImageVas, dfKey, dfDisp, dfSync, dfBlock
 
 
 
 # Import VAS parts of log (excluding keypresses)
 def ImportExtinctionRecallTaskLog_VasOnly(logFile):
-
-    # Import packages
-    import time
-    import numpy as np
-    import pandas as pd
-    import ast # for parameter parsing
-    import re # for splitting strings
     
     # === Read in PsychoPy log
     
@@ -214,9 +209,6 @@ def ImportExtinctionRecallTaskLog_VasOnly(logFile):
     block = 0
     trial = 0
     isParams = False;
-    isSoundCheck = False;
-    soundCheckResp = np.nan;
-    soundCheckRT = np.nan;
     
     # Read each line
     for line in allLines:
@@ -296,48 +288,44 @@ def ImportExtinctionRecallTaskLog_VasOnly(logFile):
                         timeToPress = dfVas.loc[iVas,'RT'] # if no press, default to RT
                     dfVas.loc[iVas,'timeToFirstPress'] = timeToPress
                     # increment VAS index
-                    iVas +=1;        
-            elif data[2]=='Sound': # sound check
-                tSoundCheck = float(data[0])
-                isSoundCheck = True;
-            elif isSoundCheck and data[2]=='Keypress:':
-                # record button press and RT
-                soundCheckRT = float(data[0])-tSoundCheck
-                soundCheckResp = data[3]==str(params['questionDownKey'])
-                isSoundCheck = False;                
+                    iVas +=1;                 
 
     
     print('Done! Took %.1f seconds.'%(time.time()-t))
     
     print('Extracting VAS data...')
     t = time.time()
-    # Parse out mood VAS results
+    # Parse out mood and sound VAS results
     dfMoodVas = dfVas.loc[pd.isnull(dfVas['imageFile']),:]
     dfMoodVas = dfMoodVas.drop(['imageFile','CSplusPercent','run','group','block','trial','tImage'],1)
+    # split into mood & sound
+    dfSoundVas = dfMoodVas.loc[dfMoodVas.name.str.startswith('SoundCheck'),:]
+    dfMoodVas = dfMoodVas.loc[~dfMoodVas.name.str.startswith('SoundCheck'),:]
+    # reset indices
+    dfSoundVas = dfSoundVas.reset_index(drop=True)
     dfMoodVas = dfMoodVas.reset_index(drop=True)
     
     # Parse out image VAS results
     dfImageVas = dfVas.loc[pd.notnull(dfVas['imageFile']),:]
     dfImageVas = dfImageVas.drop('name',1)
-    if not np.isnan(soundCheckResp):
-        # add sound check info
-        dfImageVas['soundCheckResp'] = soundCheckResp
-        dfImageVas['soundCheckRT'] = soundCheckRT
 
     # add Mood VAS types
-    dfMoodVas = GetVasTypes(params,dfMoodVas)
+    isTraining = 'Training' in logFile
+    dfMoodVas = GetVasTypes(params,dfMoodVas,isTraining)
+    
+    # add Sound VAS types (assuming only one question per sound!!!)
+    dfSoundVas['group']=np.arange(dfSoundVas.shape[0]) 
+    dfSoundVas['groupName']=[x.split('-')[0] for x in dfSoundVas.name]
+    dfSoundVas['type']='loud'
     
     print('Done! Took %.1f seconds.'%(time.time()-t))
 
     # Return results
-    return params, dfMoodVas, dfImageVas
+    return params, dfMoodVas, dfSoundVas, dfImageVas
 
 
 # Add accurate group, groupName, and type columns to the dfMoodVas dataframe 
 def GetVasTypes(params,dfMoodVas,isTraining=False):
-
-    # import packages
-    import pandas as pd
     
     # declare constants
     if isTraining:
@@ -371,22 +359,20 @@ def GetVasTypes(params,dfMoodVas,isTraining=False):
     return dfMoodVas # return modified dataframe
 
 # Save figures of the image and mood VAS responses and RTs.
-def SaveVasFigures(params,dfMoodVas,dfImageVas,outDir,outPrefix='ERTask'):
-    # Import packages
-    import pandas as pd
-    from matplotlib import pyplot as plt
-    import time
+def SaveVasFigures(params,dfMoodVas,dfSoundVas,dfImageVas,outPrefix='ER3_'):
 
-    # Plot mood VAS results
+    # Set up
+    outBase = os.path.basename(outPrefix) # filename without the folder
     print('Plotting VAS data...')
     t = time.time()
     
+    # === MOOD VAS === #
     # Set up figure
     moodFig = plt.figure(figsize=(8, 4), dpi=120, facecolor='w', edgecolor='k')
     # Plot Ratings
     plt.subplot(121)
     # declare constants
-    if outPrefix=='ERTraining':
+    if 'Training' in outPrefix:
         vasGroups=['PreRun1']
     else:
         vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostRun3'] 
@@ -402,7 +388,7 @@ def SaveVasFigures(params,dfMoodVas,dfImageVas,outDir,outPrefix='ERTask'):
     plt.xticks(rotation=15)
     plt.xlabel('group')
     plt.ylabel('rating (0-100)')
-    plt.title('%s subject %d session %d\n Mood VAS Ratings'%(outPrefix,params['subject'],params['session']))
+    plt.title('%s%d-%d\n Mood VAS Ratings'%(outBase,params['subject'],params['session']))
     
     # Plot Reaction Times
     plt.subplot(122)
@@ -414,8 +400,56 @@ def SaveVasFigures(params,dfMoodVas,dfImageVas,outDir,outPrefix='ERTask'):
     plt.xticks(rotation=15)
     plt.xlabel('group')
     plt.ylabel('reaction time (s))')
-    plt.title('%s subject %d session %d\n Mood VAS RTs'%(outPrefix,params['subject'],params['session']))
+    plt.title('%s%d-%d\n Mood VAS RTs'%(outBase,params['subject'],params['session']))
     
+    # Save figure
+    outFile = '%s%d-%d_MoodVasFigure.png'%(outPrefix,params['subject'],params['session'])
+    print("Saving Mood VAS figure as %s..."%outFile)
+    moodFig.savefig(outFile)
+    
+    
+    
+    # === SOUND CHECK VAS === #
+    # No sound checks in training task
+    if not 'Training' in outPrefix:
+        # declare constants
+        vasGroups = ['SoundCheck1','SoundCheck2','SoundCheck3'] 
+        vasTypes = ['loud']
+
+        # Set up figure
+        soundFig = plt.figure(figsize=(8, 4), dpi=120, facecolor='w', edgecolor='k')
+        # Plot Ratings
+        plt.subplot(121)
+        
+        for vasType in vasTypes:
+            isInType = dfSoundVas.type==vasType
+            plt.plot(dfSoundVas.loc[isInType,'group'],dfSoundVas.loc[isInType,'rating'],'.-',label=vasType)
+        plt.legend()
+        plt.xticks(range(len(vasGroups)),vasGroups)
+        plt.ylim([0,100])
+        plt.xticks(rotation=15)
+        plt.xlabel('group')
+        plt.ylabel('rating (0-100)')
+        plt.title('%s subject %d session %d\n Sound VAS Ratings'%(outBase,params['subject'],params['session']))
+        
+        # Plot Reaction Times
+        plt.subplot(122)
+        for vasType in vasTypes:
+            isInType = dfSoundVas.type==vasType
+            plt.plot(dfSoundVas.loc[isInType,'group'],dfSoundVas.loc[isInType,'RT'],'.-',label=vasType)
+        plt.legend()
+        plt.xticks(range(len(vasGroups)),vasGroups)
+        plt.xticks(rotation=15)
+        plt.xlabel('group')
+        plt.ylabel('reaction time (s))')
+        plt.title('%s subject %d session %d\n Sound VAS RTs'%(outBase,params['subject'],params['session']))
+    
+        # Save figure
+        outFile = '%s%d-%d_SoundVasFigure.png'%(outPrefix,params['subject'],params['session'])
+        print("Saving Sound VAS figure as %s..."%outFile)
+        soundFig.savefig(outFile)
+    
+    # === IMAGE VAS === #
     # Plot image VAS results
     imgFig = plt.figure(figsize=(8, 4), dpi=120, facecolor='w', edgecolor='k')
     
@@ -430,7 +464,7 @@ def SaveVasFigures(params,dfMoodVas,dfImageVas,outDir,outPrefix='ERTask'):
     plt.xticks(rotation=15)
     plt.xlabel('CS plus level (%)')
     plt.ylabel('rating (0-100)')
-    plt.title('%s subject %d session %d\n Image VAS Ratings'%(outPrefix,params['subject'],params['session']))
+    plt.title('%s%d-%d\n Image VAS Ratings'%(outBase,params['subject'],params['session']))
     
     # Plot Reaction Times
     plt.subplot(122)
@@ -441,14 +475,10 @@ def SaveVasFigures(params,dfMoodVas,dfImageVas,outDir,outPrefix='ERTask'):
     plt.xticks(rotation=15)
     plt.xlabel('CS plus level (%)')
     plt.ylabel('reaction time (s))')
-    plt.title('%s subject %d session %d\n Image VAS RTs'%(outPrefix,params['subject'],params['session']))
+    plt.title('%s%d-%d\n Image VAS RTs'%(outBase,params['subject'],params['session']))
 
-    # Save figures
-    outFile = '%s/%s-%d-%d-MoodVasFigure.png'%(outDir,outPrefix,params['subject'],params['session'])
-    print("Saving Mood VAS figure as %s..."%outFile)
-    moodFig.savefig(outFile)
-
-    outFile = '%s/%s-%d-%d-ImageVasFigure.png'%(outDir,outPrefix,params['subject'],params['session'])
+    # Save figure
+    outFile = '%s%d-%d_ImageVasFigure.png'%(outPrefix,params['subject'],params['session'])
     print("Saving Image VAS figure as %s..."%outFile)
     imgFig.savefig(outFile)
     
@@ -456,18 +486,22 @@ def SaveVasFigures(params,dfMoodVas,dfImageVas,outDir,outPrefix='ERTask'):
 
 
 # Convert mood VAS to a single line for logging to multi-subject spreadsheet
-def GetSingleVasLine(params,dfVas,isTraining=False):
-    # Import packages
-    import numpy as np
-    import pandas as pd
+def GetSingleVasLine(params,dfVas,isTraining=False,isSoundVas=False):
+
     
     # === Convert table to single line
     # Declare names of VAS groups/types-within-groups (to be used in legends/tables)
     if isTraining:
         vasGroups = ['PreRun1']
     else:
-        vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostRun3'] # shorthand for each VAS group based on their position in the task
-    vasTypes = ['anxious','tired','worried','mood','doing','feared'] # shorthand for VAS0, VAS1, VAS2, etc.
+        if isSoundVas:
+            vasGroups = ['SoundCheck1','SoundCheck2','SoundCheck3']
+        else:
+            vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostRun3'] # shorthand for each VAS group based on their position in the task
+    if isSoundVas:
+        vasTypes = ['loud']
+    else:
+        vasTypes = ['anxious','tired','worried','mood','doing','feared'] # shorthand for VAS0, VAS1, VAS2, etc.
     
     # Convert
     cols = ['subject','session','date']
@@ -494,3 +528,102 @@ def GetSingleVasLine(params,dfVas,isTraining=False):
                 dfVas_singleRow.loc[0,'%s_%s_RT'%(vasGroup,vasType)] = dfVas.loc[isThis,'RT'].values[0]
     
     return dfVas_singleRow
+
+
+# Do everything: import the log, produce the figures, and produce the tables.
+def ProcessERLog(logFilename,outFolder):
+    
+    # import data
+    readParams,dfMoodVas,dfSoundVas,dfImageVas = ImportExtinctionRecallTaskLog_VasOnly(logFilename)
+
+    # create output folder if it doesn't exist
+    subjOutFolder = os.path.join(outFolder,'%d'%(readParams['subject']))
+    if not os.path.exists(subjOutFolder):
+        os.makedirs(subjOutFolder)
+    isTraining = ('Training' in logFilename) # is it a training run?
+    
+    # declare cross-subject table filenames
+    if isTraining: # if it's a training run
+        outMoodTable = os.path.join(outFolder,'ER3Training-MoodVasTable.xlsx')
+        subjOutPrefix = os.path.join(subjOutFolder,'ER3Training_')
+    else:
+        outMoodTable = os.path.join(outFolder,'ER3-MoodVasTable.xlsx')
+        outSoundTable = os.path.join(outFolder,'ER3-SoundVasTable.xlsx')
+        subjOutPrefix = os.path.join(subjOutFolder,'ER3_')
+    
+    # make figures    
+    SaveVasFigures(readParams,dfMoodVas,dfSoundVas,dfImageVas,subjOutPrefix)
+    
+    # convert mood VAS to single line
+    dfMoodVas_singleRow = GetSingleVasLine(readParams,dfMoodVas,isTraining)
+    # Append output table to file
+    print("Appending to Mood VAS table %s..."%os.path.basename(outMoodTable))
+    if os.path.exists(outMoodTable):
+        dfMoodVas_all = pd.read_excel(outMoodTable,index_col=None)
+        dfMoodVas_all = dfMoodVas_all.append(dfMoodVas_singleRow)
+        dfMoodVas_all = dfMoodVas_all.drop_duplicates()
+        dfMoodVas_all.to_excel(outMoodTable,index=False)
+    else:
+        dfMoodVas_singleRow.to_excel(outMoodTable,index=False)
+        
+    if not isTraining: # if it's not a training run
+        # convert sound VAS to single line
+        dfSoundVas_singleRow = GetSingleVasLine(readParams,dfSoundVas,isTraining,isSoundVas=True)
+        # Append output table to file
+        print("Appending to Sound VAS table %s..."%os.path.basename(outSoundTable))
+        if os.path.exists(outSoundTable):
+            dfSoundVas_all = pd.read_excel(outSoundTable,index_col=None)
+            dfSoundVas_all = dfSoundVas_all.append(dfSoundVas_singleRow)
+            dfSoundVas_all = dfSoundVas_all.drop_duplicates()
+            dfSoundVas_all.to_excel(outSoundTable,index=False)
+        else:
+            dfSoundVas_singleRow.to_excel(outSoundTable,index=False)
+        
+        
+    # Save Image VAS table (one per run)
+    runs = dfImageVas.run.unique()
+    for run in runs:
+        dfImageVas_thisrun = dfImageVas.loc[dfImageVas.run==run,:]
+        outImageTable = '%s%d-%d_run%d-ImageVasTable.xlsx'%(subjOutPrefix,readParams['subject'],readParams['session'],run)
+        print("Saving Image VAS table %s..."%os.path.basename(outImageTable))
+        dfImageVas_thisrun.to_excel(outImageTable,index=False)
+    
+    print('Done!')
+
+
+
+
+# %% === Set up argument parser === 
+    
+parser = argparse.ArgumentParser(description='Process ExtinctionRecall3 log file, producing figures and tables with relevant info.')
+
+parser.add_argument('--subjects', nargs='*', default='', help='SDAN numbers of subjects to process')
+#parser.add_argument('--logFiles', nargs='*', default='', help='log filename')
+parser.add_argument('--isMac', action='store_true', help='use mac paths instead of PC')
+
+
+# ==== Declare main command-line function ==== #
+
+if __name__ == '__main__':
+    
+    # parse inputs
+    args = parser.parse_args();
+    # Get paths to mood vas and sound tables
+    if args.isMac:
+        baseDir = '/Volumes/sdan1/Data/conditioning/ExtinctionRecall3/Data'
+    else:
+        baseDir = 'Z:/Data/conditioning/ExtinctionRecall3/Data'
+        
+    outFolder = os.path.join(baseDir,'Processed')    
+    
+    for subj in args.subjects:        
+        logFiles = glob(os.path.join(baseDir,'Raw','ER3*_%s-*.log'%subj))
+        print('Found %d files for subject %s.'%(len(logFiles),subj))
+        
+        for logFile in logFiles:            
+            print('Found file %s...'%logFile)
+            ProcessERLog(logFile,outFolder)
+
+        
+    
+        

@@ -18,6 +18,7 @@ Updated 1/22/19 by DJ - modified "range" calls to make compatible with python3
 Updated 2/21/19 by DJ - changed timing, added MSI, removed dummy run, moved stimuli, 15 groups/run, randomize Q order for each run but not each group
 Updated 2/25/19 by DJ - switched to 3 runs, 5 groups/run, changed timing, added visible tick marks to VAS, changed final VAS name to PostRun3.
 Updated 3/25/19 by GF - added sound check VAS, second sound check & VAS, second break
+Updated 4/12/19 by DJ - no processing at end of task, changed log filename, renamed sound check VASs
 """
 
 # Import packages
@@ -28,8 +29,6 @@ import os, glob # for file manipulation
 import BasicPromptTools # for loading/presenting prompts and questions
 import random # for randomization of trials
 import RatingScales # for VAS sliding scale
-import pandas as pd # for log parsing
-from ImportExtinctionRecallTaskLog import * # for log parsing
 
 # ====================== #
 # ===== PARAMETERS ===== #
@@ -169,8 +168,8 @@ print('}')
 toFile('%s-lastExpInfo.psydat'%scriptName, expInfo)#save params to file for next time
 
 #make a log file to save parameter/event  data
-dateStr = ts.strftime("%Y_%m_%d_%H%M", ts.localtime()) # add the current time
-logFilename = 'Logs/%s-%s-%d-%s.log'%(scriptName,expInfo['subject'], expInfo['session'], dateStr) # log filename
+dateStr = ts.strftime("%m-%d-%Y", ts.localtime()) # add the current time
+logFilename = 'Logs/ER3_%s-%d_%s.log'%(expInfo['subject'], expInfo['session'], dateStr) # log filename
 logging.LogFile((logFilename), level=logging.INFO)#, mode='w') # w=overwrite
 logging.log(level=logging.INFO, msg='---START PARAMETERS---')
 logging.log(level=logging.INFO, msg='filename: %s'%logFilename)
@@ -508,59 +507,12 @@ def DoRun(allImages,allCodes,allNames):
     logging.log(level=logging.EXP,msg='===== END RUN =====')
 
 
-
-def ProcessDataLog():
-    
-    imageOutDir = os.path.dirname(logFilename)
-    outMoodTable = "%s/ERTask-MoodVasTable.xlsx"%imageOutDir
-    outSoundTable = "%s/ERTask-SoundVasTable.xlsx"%imageOutDir
-    
-    # import
-    readParams,dfMoodVas,dfSoundVas,dfImageVas = ImportExtinctionRecallTaskLog_VasOnly(logFilename)
-    # make figure
-    SaveVasFigures(readParams,dfMoodVas,dfSoundVas,dfImageVas,imageOutDir)
-    # convert to single line
-    dfMoodVas_singleRow = GetSingleVasLine(readParams,dfMoodVas)
-    
-    # Append output table to file
-    print("Appending to Mood VAS table %s..."%os.path.basename(outMoodTable))
-    if os.path.exists(outMoodTable):
-        dfMoodVas_all = pd.read_excel(outMoodTable,index_col=None)
-        dfMoodVas_all = dfMoodVas_all.append(dfMoodVas_singleRow)
-        dfMoodVas_all = dfMoodVas_all.drop_duplicates()
-    #     dfMoodVas_all = dfMoodVas_all.reset_index()
-        dfMoodVas_all.to_excel(outMoodTable,index=False)
-    else:
-        dfMoodVas_singleRow.to_excel(outMoodTable,index=False)
-        
-    # Save Image VAS table (one per run)
-    runs = dfImageVas.run.unique()
-    for run in runs:
-        dfImageVas_thisrun = dfImageVas.loc[dfImageVas.run==run,:]
-        outImageTable = '%s/ERTask-%d-%d-run%d-ImageVasTable.xlsx'%(imageOutDir,readParams['subject'],readParams['session'],run)
-        print("Saving Image VAS table %s..."%os.path.basename(outImageTable))
-        dfImageVas_thisrun.to_excel(outImageTable,index=False)
-    
-    print('Done!')
-
 # Handle end of a session
 def CoolDown():
     
     # turn off auto-draw of image
     stimImage.autoDraw = False
     win.flip()
-    
-    # display cool-down message
-    message1.setText("That's the end! We will take you out of the scanner now. ")
-    message2.setText("(Experimenter: Processing data log now... do not quit.)")
-    win.logOnFlip(level=logging.EXP, msg='Display TheEnd')
-    message1.draw()
-    message2.draw()
-    win.flip()
-    
-    # Process data log
-    logging.flush() # make sure all messages have been written
-    ProcessDataLog()
     
     # display cool-down message
     message1.setText("That's the end! We will take you out of the scanner now. ")
@@ -610,7 +562,7 @@ badSound.play()
 core.wait(1.5)
 
 # ---VAS
-RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='PostSoundCheck-')
+RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='SoundCheck1-')
 
 # ---Run 1
 DoRun(allImages,allCodes,allNames)
@@ -648,7 +600,7 @@ badSound.play()
 core.wait(1.5)
 
 # ---VAS
-RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='PostSoundCheck-')
+RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='SoundCheck2-')
 
 #---reminder prompt 
 if not params['skipPrompts']:
@@ -690,7 +642,7 @@ badSound.play()
 core.wait(1.5)
 
 # ---VAS
-RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='PostSoundCheck-')
+RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='SoundCheck3-')
 
 #---reminder prompt 
 if not params['skipPrompts']:
