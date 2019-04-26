@@ -10,6 +10,7 @@ Updated 2/21/19 by DJ - changed timing, added MSI, moved stimuli, changed names 
 Updated 2/25/19 by DJ - changed timing, added visible tick marks to VAS
 Updated 3/25/19 by GF - added second run and set of prompts
 Updated 4/12/19 by DJ - no processing at end of task, changed log filename
+Updated 4/26/19 by DJ - added tGetReady param, renamed tStartup->tRestInstructions, added corresponding Msg parameters, removed duplicate fixCrossDur
 """
 
 # Import packages
@@ -35,8 +36,9 @@ params = {
     'nBlocksPerGroup': 2,   # number of blocks in a group (should match number of face VAS questions)
     'nGroupsPerRun': 1,     # number times this "group" pattern should repeat
 # Declare timing parameters
-    'tStartup': 6.,        # 3., #time displaying instructions while waiting for scanner to reach steady-state
-    'tBaseline': 6.,       # 2., # pause time before starting first stimulus
+    'tGetReady': 10.,       # 2., # time displaying GetReadyMessage before rest instructions at start of each run
+    'tRestInstructions': 5.,# 2., #time displaying instructions while waiting for scanner to reach steady-state
+    'tBaseline': 6.,        # 2., # pause time before starting first stimulus
     'tPreBlockPrompt': 5.,  # duration of prompt before each block
     'tStimMin': 2.,         # min duration of stimulus (in seconds)
     'tStimMax': 4.,         # max duration of stimulus (in seconds)
@@ -45,14 +47,15 @@ params = {
     'tMsiMax': 3.5,         # max time between when one stimulus disappears and the next appears (in seconds)
     'tIsiMin': 0.5,         # min time between when one stimulus disappears and the next appears (in seconds)
     'tIsiMax': 7.,          # max time between when one stimulus disappears and the next appears (in seconds)
-    'fixCrossDur': 6.,     # 1.,# duration of cross fixation before each run
 # Declare stimulus and response parameters
     'preppedKey': 'y',      # key from experimenter that says scanner is ready
     'triggerKey': '5',      # key from scanner that says scan is starting
     'imageDir': 'Faces/',   # directory containing image stimluli
     'imageNames': ['ER3_trainingface1.jpg','ER3_trainingface2.jpg'],   # images will be selected randomly (without replacement) from this list of files in imageDir.
-# declare prompt files
+# declare prompts
     'skipPrompts': False,   # go right to the scanner-wait page
+    'GetReadyMsg': 'Get Ready...',                                         # Text displayed at start of each run
+    'RestInstructionsMsg': 'For the next minute or so, stare at the cross and rest.', # Text displayed before fixation cross at start of each run
     'promptFile1': 'Prompts/ERTrainingPrompts1.txt', # Name of text file containing prompts shown before the Mood VAS practice 
     'promptFile2': "Prompts/ERTrainingPrompts2.txt", # text file containing prompts shown before the image ratings practice
     'promptFile3': 'Prompts/ERTrainingPrompts3.txt', # text file containing prompts to make sure participant understands task
@@ -191,7 +194,6 @@ fCS = params['fixCrossSize'] # size (for brevity)
 fCP = params['fixCrossPos'] # position (for brevity)
 lineWidth = int(params['fixCrossSize']/3)
 fixation = visual.ShapeStim(win,lineColor=params['textColor'],lineWidth=lineWidth,vertices=((fCP[0]-fCS/2,fCP[1]),(fCP[0]+fCS/2,fCP[1]),(fCP[0],fCP[1]),(fCP[0],fCP[1]+fCS/2),(fCP[0],fCP[1]-fCS/2)),units='pix',closeShape=False,name='fixCross');
-duration = params['fixCrossDur'] # duration (for brevity)
 
 # create text stimuli
 message1 = visual.TextStim(win, pos=[0,+.4], wrapWidth=1.5, color=params['textColor'], alignHoriz='center', name='topMsg', text="aaa",units='norm')
@@ -367,14 +369,30 @@ def DoRun(allImages,allCodes,allNames):
     # Log state of experiment
     logging.log(level=logging.EXP,msg='===== START RUN =====')
     
+    # Display get ready message
+    message1.text = params['GetReadyMsg']
+    message1.draw()
+    win.logOnFlip(level=logging.EXP, msg='Display GetReady')
+    # show screen and update next flip time 
+    win.flip()
+    AddToFlipTime(params['tGetReady'])
+        
+    # Display instructions before rest
+    message1.text = params['RestInstructionsMsg']
+    message1.draw()
+    win.logOnFlip(level=logging.EXP, msg='Display RestInstructions')
+    # wait until it's time to show screen
+    WaitForFlipTime()
+    # show screen and update next flip time 
+    win.flip()
+    AddToFlipTime(params['tRestInstructions'])
+    
     # display fixation before first stimulus
     fixation.draw()
     win.callOnFlip(SetPortData,data=params['codeBaseline'])
     win.logOnFlip(level=logging.EXP, msg='Display Fixation')
     # wait until it's time to show screen
     WaitForFlipTime()
-    # Update time of next stim
-    AddToFlipTime(params['fixCrossDur']) # duration of cross before each run
     # show screen and update next flip time
     win.flip()
     AddToFlipTime(params['tBaseline'])

@@ -19,6 +19,8 @@ Updated 2/21/19 by DJ - changed timing, added MSI, removed dummy run, moved stim
 Updated 2/25/19 by DJ - switched to 3 runs, 5 groups/run, changed timing, added visible tick marks to VAS, changed final VAS name to PostRun3.
 Updated 3/25/19 by GF - added sound check VAS, second sound check & VAS, second break
 Updated 4/12/19 by DJ - no processing at end of task, changed log filename, renamed sound check VASs
+Updated 4/25/19 by DJ - added tPreStartup parameter for added fix cross time before Run 1's instructions, added startAtRun option to GUI
+Updated 4/26/19 by DJ - renamed tPreStartup->tGetReady and tStartup->tRestInstructions, added corresponding Msg parameters, removed duplicate fixCrossDur
 """
 
 # Import packages
@@ -44,8 +46,9 @@ params = {
     'nBlocksPerGroup': 2,   # number of blocks in a group (should match number of face VAS questions)
     'nGroupsPerRun': 5,     # number times this "group" pattern should repeat
 # Declare timing parameters
-    'tStartup': 16.,        # 3., #time displaying instructions while waiting for scanner to reach steady-state
-    'tBaseline': 30.,       # 2., # pause time before starting first stimulus
+    'tGetReady': 20.,       # 2., # time displaying GetReadyMessage before rest instructions at start of each run
+    'tRestInstructions': 5.,# 2., # time displaying rest instructions while waiting for scanner to reach steady-state
+    'tBaseline': 30.,       # 2., # rest time displaying fixation cross before starting first stimulus
     'tPreBlockPrompt': 5.,  # duration of prompt before each block
     'tStimMin': 2.,         # min duration of stimulus (in seconds)
     'tStimMax': 4.,         # max duration of stimulus (in seconds)
@@ -55,21 +58,22 @@ params = {
     'tIsiMin': 0.5,         # min time between when one stimulus disappears and the next appears (in seconds)
     'tIsiMax': 7.,          # max time between when one stimulus disappears and the next appears (in seconds)
     'tBreak': 60,           # duration of break between runs
-    'fixCrossDur': 20.,     # 1.,# duration of cross fixation before each run
 # Declare stimulus and response parameters
     'preppedKey': 'y',      # key from experimenter that says scanner is ready
     'triggerKey': '5',      # key from scanner that says scan is starting
     'imageDir': 'Faces/',   # directory containing image stimluli
     'imageNames': ['R0_B100.jpg','R25_B75.jpg','R50_B50.jpg','R75_B25.jpg','R100_B0.jpg'],   # images will be selected randomly (without replacement) from this list of files in imageDir.
                   # Corresponding Port codes will be 1-len(imageNames) for versions 2 & 4, len(imageNames)-1 for versions 1 & 3 (to match increasig CSplus level). 
-# declare prompt files
+# declare prompts
     'skipPrompts': False,   # go right to the scanner-wait page
     'promptFile': 'Prompts/ExtinctionRecallPrompts.txt', # Name of text file containing prompts 
-    'PreSoundCheckFile': "Prompts/ExtinctionRecallSoundCheckPrompts.txt", # text file containing prompts shown before the sound check
-    'PreVasMsg': "Let's do some rating scales.", # text (not file) shown BEFORE each VAS except the final one
-    'BreakMsg': "You can rest now.", # text shown during break between runs
+    'GetReadyMsg': 'Get Ready...',                                         # Text displayed at start of each run
+    'RestInstructionsMsg': 'For the next minute or so, stare at the cross and rest.', # Text displayed before fixation cross at start of each run
+    'PreSoundCheckFile': "Prompts/ExtinctionRecallSoundCheckPrompts.txt",    # Text FILE containing prompts shown before the sound check
+    'PreVasMsg': "Let's do some rating scales.",                             # Text shown BEFORE each VAS except the final one
+    'BreakMsg': "You can rest now.",                                         # Text shown during break between runs
     'BetweenRunsReminderMsg': "Please remember, in this next part, the faces might scream, so be prepared for that.", # text file shown after rest before following run 
-    'PreFinalVasMsg': "Before we continue, let's do some more rating scales", # text shown before final VAS
+    'PreFinalVasMsg': "Before we continue, let's do some more rating scales", # Text shown before final VAS
 # declare VAS info
     'faceQuestionFile': 'Questions/ERFaceRatingScales.txt', # Name of text file containing image Q&As
     'moodQuestionFile1': 'Questions/ERVas1RatingScales.txt', # Name of text file containing mood Q&As presented before sound check
@@ -122,6 +126,7 @@ try: # try to get a previous parameters file
     expInfo = fromFile('%s-lastExpInfo.psydat'%scriptName)
     expInfo['session'] +=1 # automatically increment session number
     expInfo['version'] = ['1','2','3','4','5','6','7','8']
+    expInfo['startAtRun'] = ['1','2','3']
     expInfo['paramsFile'] = [expInfo['paramsFile'],'Load...']
 except: # if not there then use a default set
     expInfo = {
@@ -130,6 +135,7 @@ except: # if not there then use a default set
         'version': ['1','2','3','4','5','6','7','8'], # group determining which stim is CS+
         'skipPrompts':False, 
         'sendPortEvents': True,
+        'startAtRun': ['1','2','3'],
         'paramsFile':['DEFAULT','Load...']}
 # overwrite params struct if you just saved a new parameter set
 if saveParams:
@@ -176,6 +182,7 @@ logging.log(level=logging.INFO, msg='filename: %s'%logFilename)
 logging.log(level=logging.INFO, msg='subject: %s'%expInfo['subject'])
 logging.log(level=logging.INFO, msg='session: %s'%expInfo['session'])
 logging.log(level=logging.INFO, msg='version: %s'%expInfo['version'])
+logging.log(level=logging.INFO, msg='startAtRun: %s'%expInfo['startAtRun'])
 logging.log(level=logging.INFO, msg='date: %s'%dateStr)
 # log everything in the params struct
 for key in sorted(params.keys()): # in alphabetical order
@@ -212,7 +219,6 @@ fCS = params['fixCrossSize'] # size (for brevity)
 fCP = params['fixCrossPos'] # position (for brevity)
 lineWidth = int(params['fixCrossSize']/3)
 fixation = visual.ShapeStim(win,lineColor=params['textColor'],lineWidth=lineWidth,vertices=((fCP[0]-fCS/2,fCP[1]),(fCP[0]+fCS/2,fCP[1]),(fCP[0],fCP[1]),(fCP[0],fCP[1]+fCS/2),(fCP[0],fCP[1]-fCS/2)),units='pix',closeShape=False,name='fixCross');
-duration = params['fixCrossDur'] # duration (for brevity)
 
 # create text stimuli
 message1 = visual.TextStim(win, pos=[0,+.4], wrapWidth=1.5, color=params['textColor'], alignHoriz='center', name='topMsg', text="aaa",units='norm')
@@ -418,13 +424,23 @@ def DoRun(allImages,allCodes,allNames):
     # Log state of experiment
     logging.log(level=logging.EXP,msg='===== START RUN =====')
     
-    # Display instructions while waiting to reach steady state
-    win.logOnFlip(level=logging.EXP, msg='Display RestInstructions')
-    message1.text = 'For the next minute or so, stare at the cross and rest.'
+    # Display get ready message
+    message1.text = params['GetReadyMsg']
     message1.draw()
+    win.logOnFlip(level=logging.EXP, msg='Display GetReady')
+    # show screen and update next flip time 
     win.flip()
-    AddToFlipTime(params['tStartup'])
-    
+    AddToFlipTime(params['tGetReady'])
+        
+    # Display instructions before rest
+    message1.text = params['RestInstructionsMsg']
+    message1.draw()
+    win.logOnFlip(level=logging.EXP, msg='Display RestInstructions')
+    # wait until it's time to show screen
+    WaitForFlipTime()
+    # show screen and update next flip time 
+    win.flip()
+    AddToFlipTime(params['tRestInstructions'])
     
     # display fixation before first stimulus
     fixation.draw()
@@ -432,8 +448,6 @@ def DoRun(allImages,allCodes,allNames):
     win.logOnFlip(level=logging.EXP, msg='Display Fixation')
     # wait until it's time to show screen
     WaitForFlipTime()
-    # Update time of next stim
-    AddToFlipTime(params['fixCrossDur']) # duration of cross before each run
     # show screen and update next flip time
     win.flip()
     AddToFlipTime(params['tBaseline'])
@@ -537,93 +551,97 @@ event.globalKeys.add(key='q', modifiers=['ctrl'], func=CoolDown)
 # log experiment start and set up
 logging.log(level=logging.EXP, msg='---START EXPERIMENT---')
 
-# ---VAS
-RunMoodVas(questions_vas1,options_vas1,name='PreSoundCheck-')
+if int(expInfo['startAtRun'])==1:
+    # ---VAS
+    RunMoodVas(questions_vas1,options_vas1,name='PreSoundCheck-')
 
-# ---Instructions
-# display prompts
-if not params['skipPrompts']:
-    BasicPromptTools.RunPrompts(topPrompts,bottomPrompts,win,message1,message2)
+    # ---Instructions
+    # display prompts
+    if not params['skipPrompts']:
+        BasicPromptTools.RunPrompts(topPrompts,bottomPrompts,win,message1,message2)
 
-# ---Sound Check
-# show instructions
-if not params['skipPrompts']:
-    BasicPromptTools.RunPrompts(topPrompts_sound,bottomPrompts_sound,win,message1,message2)
+    # ---Sound Check
+    # show instructions
+    if not params['skipPrompts']:
+        BasicPromptTools.RunPrompts(topPrompts_sound,bottomPrompts_sound,win,message1,message2)
 
-# show blank screen
-win.logOnFlip(level=logging.EXP, msg='Display Blank')
-win.flip()
-# wait briefly
-core.wait(0.5)
+    # show blank screen
+    win.logOnFlip(level=logging.EXP, msg='Display Blank')
+    win.flip()
+    # wait briefly
+    core.wait(0.5)
 
-# play sound
-badSound.play()
-# wait briefly
-core.wait(1.5)
+    # play sound
+    badSound.play()
+    # wait briefly
+    core.wait(1.5)
 
-# ---VAS
-RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='SoundCheck1-')
+    # ---VAS
+    RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='SoundCheck1-')
 
-# ---Run 1
-DoRun(allImages,allCodes,allNames)
+    # ---Run 1
+    DoRun(allImages,allCodes,allNames)
 
-# ---VAS
-RunMoodVas(questions_vas2,options_vas2,name='PostRun1-')
+    # ---VAS
+    RunMoodVas(questions_vas2,options_vas2,name='PostRun1-')
 
-# ---break (60s)
-# display break prompt
-message1.text = params['BreakMsg']
-# Set up display
-win.logOnFlip(level=logging.EXP, msg='Display BreakMsg')
-message1.draw()
-# Wait until it's time to display
-WaitForFlipTime()
-# Display prompt
-win.flip()
-AddToFlipTime(params['tBreak'])
-WaitForFlipTime()
+    # ---break (60s)
+    # display break prompt
+    message1.text = params['BreakMsg']
+    # Set up display
+    win.logOnFlip(level=logging.EXP, msg='Display BreakMsg')
+    message1.draw()
+    # Wait until it's time to display
+    WaitForFlipTime()
+    # Display prompt
+    win.flip()
+    AddToFlipTime(params['tBreak'])
+    WaitForFlipTime()
 
-# ---Sound Check
-# show instructions
-if not params['skipPrompts']:
-    BasicPromptTools.RunPrompts(topPrompts_sound,bottomPrompts_sound,win,message1,message2)
 
-# show blank screen
-win.logOnFlip(level=logging.EXP, msg='Display Blank')
-win.flip()
-# wait briefly
-core.wait(0.5)
+if int(expInfo['startAtRun'])<=2:
+    # ---Sound Check
+    # show instructions
+    if not params['skipPrompts']:
+        BasicPromptTools.RunPrompts(topPrompts_sound,bottomPrompts_sound,win,message1,message2)
 
-# play sound
-badSound.play()
-# wait briefly
-core.wait(1.5)
+    # show blank screen
+    win.logOnFlip(level=logging.EXP, msg='Display Blank')
+    win.flip()
+    # wait briefly
+    core.wait(0.5)
 
-# ---VAS
-RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='SoundCheck2-')
+    # play sound
+    badSound.play()
+    # wait briefly
+    core.wait(1.5)
 
-#---reminder prompt 
-if not params['skipPrompts']:
-    BasicPromptTools.RunPrompts([params['BetweenRunsReminderMsg']],["Press any button to continue."],win,message1,message2)
+    # ---VAS
+    RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='SoundCheck2-')
 
-# ---Run 2
-DoRun(allImages,allCodes,allNames)
+    #---reminder prompt 
+    if not params['skipPrompts']:
+        BasicPromptTools.RunPrompts([params['BetweenRunsReminderMsg']],["Press any button to continue."],win,message1,message2)
 
-# ---VAS
-RunMoodVas(questions_vas3,options_vas3,name='PostRun2-')
+    # ---Run 2
+    DoRun(allImages,allCodes,allNames)
 
-# ---break (60s)
-# display break prompt
-message1.text = params['BreakMsg']
-# Set up display
-win.logOnFlip(level=logging.EXP, msg='Display BreakMsg')
-message1.draw()
-# Wait until it's time to display
-WaitForFlipTime()
-# Display prompt
-win.flip()
-AddToFlipTime(params['tBreak'])
-WaitForFlipTime()
+    # ---VAS
+    RunMoodVas(questions_vas3,options_vas3,name='PostRun2-')
+
+    # ---break (60s)
+    # display break prompt
+    message1.text = params['BreakMsg']
+    # Set up display
+    win.logOnFlip(level=logging.EXP, msg='Display BreakMsg')
+    message1.draw()
+    # Wait until it's time to display
+    WaitForFlipTime()
+    # Display prompt
+    win.flip()
+    AddToFlipTime(params['tBreak'])
+    WaitForFlipTime()
+
 
 # ---Sound Check
 # show instructions
