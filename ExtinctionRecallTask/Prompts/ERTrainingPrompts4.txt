@@ -1,0 +1,9 @@
+### Page 1 ###
++Great job! To make sure you completely understand this task, you are going to practice answering those questions one more time.
+-Press any button to continue.
+### Page 2 ###
++Please tell the MRI scan assistant sitting next to you how you should respond to the questions: "how afraid were you just now?" and "how likely was she to scream before?"
+-Press any button to continue.
+### Page 3 ###
++We are now going to practice answering those questions again. Remember to respond as quickly as possible. Are you ready?
+-Press any button to begin.

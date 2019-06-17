@@ -11,6 +11,8 @@ Updated 2/25/19 by DJ - changed timing, added visible tick marks to VAS
 Updated 3/25/19 by GF - added second run and set of prompts
 Updated 4/12/19 by DJ - no processing at end of task, changed log filename
 Updated 4/26/19 by DJ - added tGetReady param, renamed tStartup->tRestInstructions, added corresponding Msg parameters, removed duplicate fixCrossDur
+Updated 5/2/19 by GF - added third run and fourth set of prompts
+Updated 5/9/19 by GF - added shapes instead of faces, adjusted prompt 2 to include this in instructions
 """
 
 # Import packages
@@ -59,6 +61,7 @@ params = {
     'promptFile1': 'Prompts/ERTrainingPrompts1.txt', # Name of text file containing prompts shown before the Mood VAS practice 
     'promptFile2': "Prompts/ERTrainingPrompts2.txt", # text file containing prompts shown before the image ratings practice
     'promptFile3': 'Prompts/ERTrainingPrompts3.txt', # text file containing prompts to make sure participant understands task
+    'promptFile4': 'Prompts/ERTrainingPrompts4.txt', # text file containing prompts to make sure participant understands task again
     'PreVasMsg': "Let's do some rating scales.", # text (not file) shown BEFORE each VAS except the final one
     'PreFinalVasMsg': "We're done!", # text shown before final VAS
 # declare VAS info
@@ -219,6 +222,9 @@ print('%d prompts loaded from %s'%(len(topPrompts2),params['promptFile2']))
 
 [topPrompts3,bottomPrompts3] = BasicPromptTools.ParsePromptFile(params['promptFile3'])
 print('%d prompts loaded from %s'%(len(topPrompts3),params['promptFile3']))
+
+[topPrompts4,bottomPrompts4] = BasicPromptTools.ParsePromptFile(params['promptFile4'])
+print('%d prompts loaded from %s'%(len(topPrompts4),params['promptFile4']))
 
 [questions,options,answers] = BasicPromptTools.ParseQuestionFile(params['faceQuestionFile'])
 print('%d questions loaded from %s'%(len(questions),params['faceQuestionFile']))
@@ -518,6 +524,14 @@ if not params['skipPrompts']:
     BasicPromptTools.RunPrompts(topPrompts3,bottomPrompts3,win,message1,message2)
 
 # ---Run 2
+DoRun(allImages,allCodes,allNames)
+
+# ---Instructions
+# display prompts
+if not params['skipPrompts']:
+    BasicPromptTools.RunPrompts(topPrompts4,bottomPrompts4,win,message1,message2)
+
+# ---Run 3
 DoRun(allImages,allCodes,allNames)
 
 # Log end of experiment

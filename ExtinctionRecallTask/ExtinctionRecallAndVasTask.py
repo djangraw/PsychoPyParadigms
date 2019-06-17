@@ -21,6 +21,7 @@ Updated 3/25/19 by GF - added sound check VAS, second sound check & VAS, second 
 Updated 4/12/19 by DJ - no processing at end of task, changed log filename, renamed sound check VASs
 Updated 4/25/19 by DJ - added tPreStartup parameter for added fix cross time before Run 1's instructions, added startAtRun option to GUI
 Updated 4/26/19 by DJ - renamed tPreStartup->tGetReady and tStartup->tRestInstructions, added corresponding Msg parameters, removed duplicate fixCrossDur
+Updated 6/3/19 by GF - added reminder prompt after sound VAS
 """
 
 # Import packages
@@ -578,6 +579,10 @@ if int(expInfo['startAtRun'])==1:
 
     # ---VAS
     RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='SoundCheck1-')
+    
+    #---reminder prompt
+    if not params['skipPrompts']:
+        BasicPromptTools.RunPrompts([params['BetweenRunsReminderMsg']],["Press any button to continue."],win,message1,message2)
 
     # ---Run 1
     DoRun(allImages,allCodes,allNames)
