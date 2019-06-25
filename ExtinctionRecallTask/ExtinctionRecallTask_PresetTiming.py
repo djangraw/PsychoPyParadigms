@@ -1,8 +1,8 @@
 #!/usr/bin/env python2
 """
-ExtinctioRecallAndVasTask.py
+ExtinctioRecallTask_PresetTiming.py
 Display images from a specified folder and present them to the subject, rating the images on given scales.
-Also have rest and "dummy" runs and present mood ratings to the subject in between.
+Also present rest periods, sound checks, and mood ratings to the subject in between runs.
 
 Created 8/21/18 by DJ.
 Updated 8/29/18 by DJ - added parallel port triggers, opening prompt, baseline period 
@@ -22,15 +22,18 @@ Updated 4/12/19 by DJ - no processing at end of task, changed log filename, rena
 Updated 4/25/19 by DJ - added tPreStartup parameter for added fix cross time before Run 1's instructions, added startAtRun option to GUI
 Updated 4/26/19 by DJ - renamed tPreStartup->tGetReady and tStartup->tRestInstructions, added corresponding Msg parameters, removed duplicate fixCrossDur
 Updated 6/3/19 by GF - added reminder prompt after sound VAS
+Updated 6/20-25/19 by DJ - switched to _PresetTiming version that reads in timing files
+Updated 6/25/19 by DJ - cleaned up unnecesary code
 """
 
 # Import packages
 from psychopy import visual, core, gui, data, event, logging, sound 
 from psychopy.tools.filetools import fromFile, toFile # saving and loading parameter files
 import time as ts, numpy as np # for timing and array operations
-import os, glob # for file manipulation
+import pandas as pd # for timing file importing/manipulation
+import io # for reading files with specified newlines
+import os # for file manipulation
 import BasicPromptTools # for loading/presenting prompts and questions
-import random # for randomization of trials
 import RatingScales # for VAS sliding scale
 
 # ====================== #
@@ -38,33 +41,24 @@ import RatingScales # for VAS sliding scale
 # ====================== #
 # Save the parameters declared below?
 saveParams = True;
-newParamsFilename = 'ExtinctionRecallParams.psydat'
+newParamsFilename = 'ER_PresetTiming-params.psydat'
 
 # Declare primary task parameters.
 params = {
-# Declare experiment flow parameters
-    'nTrialsPerBlock': 5,   # number of trials in a block
-    'nBlocksPerGroup': 2,   # number of blocks in a group (should match number of face VAS questions)
-    'nGroupsPerRun': 5,     # number times this "group" pattern should repeat
 # Declare timing parameters
-    'tGetReady': 20.,       # 2., # time displaying GetReadyMessage before rest instructions at start of each run
-    'tRestInstructions': 5.,# 2., # time displaying rest instructions while waiting for scanner to reach steady-state
-    'tBaseline': 30.,       # 2., # rest time displaying fixation cross before starting first stimulus
-    'tPreBlockPrompt': 5.,  # duration of prompt before each block
-    'tStimMin': 2.,         # min duration of stimulus (in seconds)
-    'tStimMax': 4.,         # max duration of stimulus (in seconds)
-    'questionDur': 2.5,     # duration of the image rating (in seconds)
-    'tMsiMin': 0.5,         # min time between when one stimulus disappears and the next appears (in seconds)
-    'tMsiMax': 3.5,         # max time between when one stimulus disappears and the next appears (in seconds)
-    'tIsiMin': 0.5,         # min time between when one stimulus disappears and the next appears (in seconds)
-    'tIsiMax': 7.,          # max time between when one stimulus disappears and the next appears (in seconds)
+    'speedUp': 10., # 1 = normal speed, 10=10x speed
+    'tCoolDown': 20,        # duration of fixation cross at end of run
     'tBreak': 60,           # duration of break between runs
+# Declare timing files
+    'timingFileDir': 'TimingFiles/',                             # where the AFNI timing text files sit
+    'usedTimingFileList': 'TimingFiles/ER3.usedIterList.txt',     # subject number and timing file
+    'unusedTimingFileList': 'TimingFiles/ER3.unusedIterList.txt', # timing files
 # Declare stimulus and response parameters
     'preppedKey': 'y',      # key from experimenter that says scanner is ready
     'triggerKey': '5',      # key from scanner that says scan is starting
     'imageDir': 'Faces/',   # directory containing image stimluli
     'imageNames': ['R0_B100.jpg','R25_B75.jpg','R50_B50.jpg','R75_B25.jpg','R100_B0.jpg'],   # images will be selected randomly (without replacement) from this list of files in imageDir.
-                  # Corresponding Port codes will be 1-len(imageNames) for versions 2 & 4, len(imageNames)-1 for versions 1 & 3 (to match increasig CSplus level). 
+                  # Corresponding Port codes will be 1-len(imageNames) for even versions, len(imageNames)-1 for odd versions (to match increasing CSplus level). 
 # declare prompts
     'skipPrompts': False,   # go right to the scanner-wait page
     'promptFile': 'Prompts/ExtinctionRecallPrompts.txt', # Name of text file containing prompts 
@@ -172,7 +166,7 @@ for key in sorted(params.keys()):
 print('}')
     
 # save experimental info
-toFile('%s-lastExpInfo.psydat'%scriptName, expInfo)#save params to file for next time
+toFile('%s-lastExpInfo.psydat'%scriptName, expInfo) #save params to file for next time
 
 #make a log file to save parameter/event  data
 dateStr = ts.strftime("%m-%d-%Y", ts.localtime()) # add the current time
@@ -212,8 +206,8 @@ else:
 tNextFlip = [0.0] # put in a list to make it mutable (weird quirk of python variables) 
 
 #create clocks and window
-globalClock = core.Clock()#to keep track of time
-trialClock = core.Clock()#to keep track of time
+globalClock = core.Clock() #to keep track of time
+trialClock = core.Clock() #to keep track of time
 win = visual.Window(params['screenRes'], fullscr=params['fullScreen'], allowGUI=False, monitor='testMonitor', screen=params['screenToShow'], units='deg', name='win',color=params['screenColor'],colorSpace='rgb255')
 # create fixation cross
 fCS = params['fixCrossSize'] # size (for brevity)
@@ -236,9 +230,6 @@ else: # if it's version 1, 3, 5, or 7, reverse order
     allNames = ['CSplus100','CSplus75','CSplus50','CSplus25','CSplus0']
     
 print('%d images loaded from %s'%(len(allImages),params['imageDir']))
-# make sure there are enough images
-if len(allImages)<params['nTrialsPerBlock']:
-    raise ValueError("# images found in '%s' (%d) is less than # trials (%d)!"%(params['imageDir'],len(allImages),params['nTrials']))
 
 # initialize main image stimulus
 imageName = allImages[0] # initialize with first image
@@ -274,8 +265,65 @@ print('%d questions loaded from %s'%(len(questions_vas4),params['moodQuestionFil
 [questions_postsoundcheck,options_postsoundcheck,answers_postsoundcheck] = BasicPromptTools.ParseQuestionFile(params['PostSoundCheckFile'])
 print('%d questions loaded from %s'%(len(questions_postsoundcheck),params['PostSoundCheckFile']))
 
-# declare order of blocks for later randomization
-blockOrder = list(range(params['nBlocksPerGroup']))
+# ========================== #
+# ===== SET UP TIMING ===== #
+# ========================== #
+# read in list of subjects/timing fiiles used
+isSubjUsed = False
+with io.open(params['usedTimingFileList']) as f:
+    allLines = f.read().splitlines()
+
+# check whether this subj has been used
+for line in allLines:
+    if line.startswith(expInfo['subject']):
+        isSubjUsed = True
+        timingFile = line.split()[-1]
+        print('Subject %s found in %s! Reusing timing file %s.'%(expInfo['subject'],params['usedTimingFileList'],timingFile))
+# if it hasn't been, find a timing file that hasn't been used
+if not isSubjUsed:
+    with io.open(params['unusedTimingFileList'], 'r') as fin:
+        data = fin.read().splitlines()
+    timingFile = data[0]
+    print('Subject %s not yet used. Using timing file %s.'%(expInfo['subject'],timingFile))
+    # add it to the used list
+    print('Adding to %s.'%params['usedTimingFileList'])
+    with io.open(params['usedTimingFileList'],'a') as f:
+        f.write("%s %s\r\n"%(expInfo['subject'],timingFile))
+    # remove it from the unused list
+    print('Removing from %s.'%params['usedTimingFileList'])
+    with io.open(params['unusedTimingFileList'], 'w') as fout:
+        fout.write('\n'.join(data[1:]))
+
+# read in stimulus timing file
+dfTiming = [pd.DataFrame()]*3; #initialize list
+for i in range(3):
+    dfTiming[i] = pd.read_csv('%s/ER3.iter%s.run%d.events.txt'%(params['timingFileDir'],timingFile,i+1))
+    # fill in prompts
+    dfTiming[i].loc[0,'event_type'] = 'GetReadyMsg';
+    dfTiming[i].loc[1,'event_type'] = 'RestInstructionsMsg';
+    iPrompts = np.where(dfTiming[i]['event_type']=='prompt')[0];
+    for j in iPrompts:
+        iNextQ = j+2
+        iQ = int(dfTiming[i].loc[iNextQ,'event_type'][1])
+        dfTiming[i].loc[j,'event_type'] = 'prompt_q%d'%iQ;
+     # fill in fixations
+    for j in range(dfTiming[i].shape[0]-1):
+        tOffset = (dfTiming[i].loc[j,'onset'] + dfTiming[i].loc[j,'duration'])
+        if tOffset < dfTiming[i].loc[j+1,'onset']:
+            dfTiming[i] = dfTiming[i].append(pd.DataFrame([['fixation',tOffset,dfTiming[i].loc[j+1,'onset']-tOffset]],columns = dfTiming[i].columns));
+    # re-sort
+    dfTiming[i] = dfTiming[i].sort_values('onset').reset_index(drop=True)
+    # re-label baseline
+    dfTiming[i].loc[2,'event_type'] = 'Baseline';
+    # add cool-down
+    tEnd = dfTiming[i].onset.values[-1] + dfTiming[i].duration.values[-1] # time when task ends
+    dfTiming[i] = dfTiming[i].append(pd.DataFrame([['coolDown',tEnd,params['tCoolDown']]],columns = dfTiming[i].columns));
+    # re-sort
+    dfTiming[i] = dfTiming[i].sort_values('onset').reset_index(drop=True)
+    
+# print('%d conditions found in timing file. Parameters specified %d trials per run.'%(len(conditions),params['nTrialsPerRun']))
+
+
 
 # ============================ #
 # ======= SUBFUNCTIONS ======= #
@@ -283,7 +331,7 @@ blockOrder = list(range(params['nBlocksPerGroup']))
 
 # increment time of next window flip
 def AddToFlipTime(tIncrement=1.0):
-    tNextFlip[0] += tIncrement
+    tNextFlip[0] += tIncrement/params['speedUp']
 
 # flip window as soon as possible
 def SetFlipTimeToNow():
@@ -344,39 +392,26 @@ def ShowPreBlockPrompt(question,iPrompt):
     message2.draw()
     # set up logging
     win.logOnFlip(level=logging.EXP, msg='Display PreBlockPrompt%d'%iPrompt)
-    # wait until it's time
-    WaitForFlipTime()
-    # update display 
-    win.flip()
-    # Update next stim time
-    AddToFlipTime(params['tPreBlockPrompt'])
-    
 
 # Display an image
-def ShowImage(imageFile, stimDur=float('Inf'),imageName='image'):
+def ShowImage(imageFile, imageName='image'):
     # display info to experimenter
     print('Showing Stimulus %s'%imageName) 
-    
     # Draw image
     stimImage.setImage(imageFile)
     stimImage.draw()
-    # Wait until it's time to display
-    WaitForFlipTime()
-    # log & flip window to display image
+    # log image
     win.logOnFlip(level=logging.EXP, msg='Display %s %s'%(imageFile,imageName))
-    win.flip()
-    # Update next stim time
-    AddToFlipTime(stimDur) # add to tNextFlip[0]
     
 
 # Run a set of visual analog scale (VAS) questions
-def RunVas(questions,options,pos=(0.,-0.25),scaleTextPos=[0.,0.25],questionDur=params['questionDur'],isEndedByKeypress=params['questionSelectAdvances'],name='Vas'):
+def RunVas(questions,options,pos=(0.,-0.25),scaleTextPos=[0.,0.25],questionDur=float('inf'),isEndedByKeypress=params['questionSelectAdvances'],name='Vas'):
     
     # wait until it's time
     WaitForFlipTime()
     
     # Show questions and options
-    [rating,decisionTime,choiceHistory] = RatingScales.ShowVAS(questions,options, win, questionDur=questionDur, \
+    [rating,decisionTime,choiceHistory] = RatingScales.ShowVAS(questions,options, win, questionDur=questionDur/params['speedUp'], \
         upKey=params['questionUpKey'], downKey=params['questionDownKey'], selectKey=params['questionSelectKey'],\
         isEndedByKeypress=isEndedByKeypress, textColor=params['vasTextColor'], name=name, pos=pos,\
         scaleTextPos=scaleTextPos, labelYPos=pos[1]-params['vasLabelYDist'], markerSize=params['vasMarkerSize'],\
@@ -419,105 +454,79 @@ def RunSoundVas(questions_postsoundcheck,options_postsoundcheck,name='SoundVas')
     RunVas(questions_postsoundcheck,options_postsoundcheck,questionDur=float("inf"), isEndedByKeypress=True,name=name)
 
 
-def DoRun(allImages,allCodes,allNames):
+def DoRun(allImages,allCodes,allNames,dfRunTiming):
     # wait for scanner
     WaitForScanner() # includes SetFlipTimeToNow
     # Log state of experiment
     logging.log(level=logging.EXP,msg='===== START RUN =====')
+    iBlock = 0; # reset block number
     
-    # Display get ready message
-    message1.text = params['GetReadyMsg']
-    message1.draw()
-    win.logOnFlip(level=logging.EXP, msg='Display GetReady')
-    # show screen and update next flip time 
-    win.flip()
-    AddToFlipTime(params['tGetReady'])
+    for iStim in range(dfRunTiming.shape[0]):
+        # extract info from timing dataframe
+        eventType = dfRunTiming.loc[iStim,'event_type'];
+        eventDur = dfRunTiming.loc[iStim,'duration'];
         
-    # Display instructions before rest
-    message1.text = params['RestInstructionsMsg']
-    message1.draw()
-    win.logOnFlip(level=logging.EXP, msg='Display RestInstructions')
-    # wait until it's time to show screen
-    WaitForFlipTime()
-    # show screen and update next flip time 
-    win.flip()
-    AddToFlipTime(params['tRestInstructions'])
-    
-    # display fixation before first stimulus
-    fixation.draw()
-    win.callOnFlip(SetPortData,data=params['codeBaseline'])
-    win.logOnFlip(level=logging.EXP, msg='Display Fixation')
-    # wait until it's time to show screen
-    WaitForFlipTime()
-    # show screen and update next flip time
-    win.flip()
-    AddToFlipTime(params['tBaseline'])
-    
-    # randomize order of blocks
-    random.shuffle(blockOrder)
-    
-    # RUN GROUP OF BLOCKS
-    for iGroup in range(params['nGroupsPerRun']):
-        # Log state of experiment
-        logging.log(level=logging.EXP,msg='==== START GROUP %d/%d ===='%(iGroup+1,params['nGroupsPerRun']))
-        
-        # RUN BLOCK
-        for iBlock in range(params['nBlocksPerGroup']):
-            
+        if eventType=='GetReadyMsg':
+            # Display get ready message
+            message1.text = params['GetReadyMsg']
+            message1.draw()
+            win.logOnFlip(level=logging.EXP, msg='Display GetReady')
+        elif eventType=='RestInstructionsMsg':
+            # Display instructions before rest
+            message1.text = params['RestInstructionsMsg']
+            message1.draw()
+            win.logOnFlip(level=logging.EXP, msg='Display RestInstructions')
+        elif eventType=='Baseline':
+            # display fixation before first stimulus
+            fixation.draw()
+            win.callOnFlip(SetPortData,data=params['codeBaseline'])
+            win.logOnFlip(level=logging.EXP, msg='Display Fixation')
+        elif eventType=='fixation':
+            # display fixation and reset port
+            fixation.draw()
+            win.callOnFlip(SetPortData,data=0)
+            win.logOnFlip(level=logging.EXP, msg='Display Fixation')
+        elif eventType.startswith('prompt'):
             # Log state of experiment
-            logging.log(level=logging.EXP,msg='=== START BLOCK %d/%d TYPE %d ==='%(iBlock+1,params['nBlocksPerGroup'],blockOrder[iBlock]))
-            
-            # randomize order of images and codes the same way
-            ziplist = list(zip(allImages, allCodes, allNames))
-            random.shuffle(ziplist)
-            allImages, allCodes, allNames = zip(*ziplist)
-            
+            if iBlock>0:
+                logging.log(level=logging.EXP,msg='=== END BLOCK %d, TYPE %d ==='%(iBlock,iBlockType))
+            # update block index
+            iBlock = iBlock + 1;
+            iBlockType = int(eventType[-1]);
+            # Log state of experiment
+            logging.log(level=logging.EXP,msg='=== START BLOCK %d, TYPE %d ==='%(iBlock,iBlockType))
             # Display pre-block prompt
-            ShowPreBlockPrompt(questions[blockOrder[iBlock]].upper(), blockOrder[iBlock])
-            
-            # RUN TRIAL
-            for iTrial in range(params['nTrialsPerBlock']):
-                # get randomized stim time
-                stimDur = random.uniform(params['tStimMin'],params['tStimMax'])
-                # display image
-                portCode = len(allCodes)*(blockOrder[iBlock]) + allCodes[iTrial]
-                win.callOnFlip(SetPortData,data=portCode)
-                ShowImage(imageFile=allImages[iTrial],stimDur=stimDur,imageName=allNames[iTrial])
-                
-                # get randomized MSI (mid-stim interval)
-                tMsi = random.uniform(params['tMsiMin'],params['tMsiMax'])
-                # Display the fixation cross
-                fixation.draw() # draw it
-                win.logOnFlip(level=logging.EXP, msg='Display Fixation')
-                win.callOnFlip(SetPortData,data=0)
-                # VAS keeps control to the end, so no need to wait for flip time
-                WaitForFlipTime()
-                win.flip()
-                AddToFlipTime(tMsi)
-                
-                # Display VAS
-                portCode = len(allCodes)*(blockOrder[iBlock]+2) + allCodes[iTrial]
-                win.callOnFlip(SetPortData,data=portCode)
-                RunVas([questions[blockOrder[iBlock]]],[options[blockOrder[iBlock]]],name='ImageRating')
-                
-                # get randomized ISI
-                tIsi = random.uniform(params['tIsiMin'],params['tIsiMax'])
-                # Display Fixation Cross (ISI)
-                if iTrial < (params['nTrialsPerBlock']-1):
-                    # Display the fixation cross
-                    fixation.draw() # draw it
-                    win.logOnFlip(level=logging.EXP, msg='Display Fixation')
-                    win.callOnFlip(SetPortData,data=0)
-                    # VAS keeps control to the end, so no need to wait for flip time
-                    win.flip()
-                    AddToFlipTime(tIsi)
-                    
+            ShowPreBlockPrompt(questions[iBlockType].upper(), iBlockType)
+        elif eventType.startswith('face'):
+            # extract image index
+            CS = int(eventType[-3:])
+            iImage = allNames.index('CSplus%d'%CS)
+            # display image
+            portCode = len(allCodes)*(iBlockType) + allCodes[iImage]
+            win.callOnFlip(SetPortData,data=portCode)
+            ShowImage(imageFile=allImages[iImage],imageName=allNames[iImage])
+        elif eventType.startswith('q'):
+            # Display VAS
+            portCode = len(allCodes)*(iBlockType+2) + allCodes[iImage]
+            win.callOnFlip(SetPortData,data=portCode)
+            RunVas([questions[iBlockType]],[options[iBlockType]],name='ImageRating',questionDur=eventDur)
+            # skip wait/display (it's included in the RunVas function)
+            continue
+        elif eventType=='coolDown':
             # Log state of experiment
-            logging.log(level=logging.EXP,msg='=== END BLOCK %d/%d TYPE %d ==='%(iBlock+1,params['nBlocksPerGroup'],blockOrder[iBlock]))
-            
-        # Log state of experiment
-        logging.log(level=logging.EXP,msg='==== END GROUP %d/%d ===='%(iGroup+1,params['nGroupsPerRun']))
+            logging.log(level=logging.EXP,msg='=== END BLOCK %d TYPE %d ==='%(iBlock,iBlockType))
+            # display fixation and reset port
+            fixation.draw()
+            win.callOnFlip(SetPortData,data=0)
+            win.logOnFlip(level=logging.EXP, msg='Display Fixation')
+        # wait until it's time to show screen
+        WaitForFlipTime()
+        # show screen and update next flip time 
+        win.flip()
+        AddToFlipTime(eventDur)
+        
     
+    WaitForFlipTime()
     # Log state of experiment
     logging.log(level=logging.EXP,msg='===== END RUN =====')
 
@@ -585,7 +594,7 @@ if int(expInfo['startAtRun'])==1:
         BasicPromptTools.RunPrompts([params['BetweenRunsReminderMsg']],["Press any button to continue."],win,message1,message2)
 
     # ---Run 1
-    DoRun(allImages,allCodes,allNames)
+    DoRun(allImages,allCodes,allNames,dfTiming[0])
 
     # ---VAS
     RunMoodVas(questions_vas2,options_vas2,name='PostRun1-')
@@ -629,7 +638,7 @@ if int(expInfo['startAtRun'])<=2:
         BasicPromptTools.RunPrompts([params['BetweenRunsReminderMsg']],["Press any button to continue."],win,message1,message2)
 
     # ---Run 2
-    DoRun(allImages,allCodes,allNames)
+    DoRun(allImages,allCodes,allNames,dfTiming[1])
 
     # ---VAS
     RunMoodVas(questions_vas3,options_vas3,name='PostRun2-')
@@ -672,7 +681,7 @@ if not params['skipPrompts']:
     BasicPromptTools.RunPrompts([params['BetweenRunsReminderMsg']],["Press any button to continue."],win,message1,message2)
 
 # ---Run 3
-DoRun(allImages,allCodes,allNames)
+DoRun(allImages,allCodes,allNames,dfTiming[2])
 
 # ---DonePrompt
 WaitForFlipTime()
