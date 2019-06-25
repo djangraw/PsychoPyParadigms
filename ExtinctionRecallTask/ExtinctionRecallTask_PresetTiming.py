@@ -46,7 +46,7 @@ newParamsFilename = 'ER_PresetTiming-params.psydat'
 # Declare primary task parameters.
 params = {
 # Declare timing parameters
-    'speedUp': 10., # 1 = normal speed, 10=10x speed
+    'speedUp': 1., # 1 = normal speed, 10=10x speed
     'tCoolDown': 20,        # duration of fixation cross at end of run
     'tBreak': 60,           # duration of break between runs
 # Declare timing files
