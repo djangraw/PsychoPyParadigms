@@ -204,7 +204,6 @@ def RunTrial(frames,tIFIs,tISI):
             elif thisKey!=None and len(thisKey)>0 and thisKey[0] in params['respKeys']:
                 logging.log(level=logging.EXP, msg='Response at speed = %.1f wpm'%(60.0/tIFIs[i]))
                 endTime = globalClock.getTime() + params['endDelay'];
-                print('endTime = %g'%endTime)
 #            core.wait(0.0001)
         
         # if it's more than endDelay seconds after a response
