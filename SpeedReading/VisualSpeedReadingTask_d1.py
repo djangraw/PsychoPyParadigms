@@ -187,7 +187,10 @@ def AddToFlipTime(tIncrement=1.0):
 def RunTrial(frames,tIFIs,tISI):
     
     # ===TEXT=== #
-    endTime = np.Inf;
+    # Set up
+    event.clearEvents(); # clear keyboard events
+    endTime = np.Inf; # set trial end time to infinity until subject responds
+    # Display text
     for i in range(len(frames)):
         # update text
         mainText.setText(frames[i])
