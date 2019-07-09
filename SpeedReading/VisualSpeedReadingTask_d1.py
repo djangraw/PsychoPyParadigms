@@ -5,6 +5,7 @@
 #
 # Created 6/4/18 by DJ based on AuditorySpeedReadingTask_d1.py.
 # Updated 12/31/18 by DJ - modified to allow each block's speeds to be specified separately.
+# Updated 7/9/19 by DJ - response from participant ends a block. Added endDelay and respKeys parameters.
 
 from psychopy import core, gui, data, event, sound, logging #, visual # visual causes a bug in the guis, so I moved it down.
 from psychopy.tools.filetools import fromFile, toFile
@@ -38,8 +39,10 @@ params = {
     'minFPM': [120,600,120],       # frames per minute at start of block
     'maxFPM': [120,600,2000],       # frames per minute at end of block
     'nFrames': [20, 100,400], # [2004]*2, # number of frames (words) for each block
+    'endDelay': 5.0, # seconds between response and end of trial
     # declare other stimulus parameters
     'triggerKey': 't',
+    'respKeys': ['b','y','r','g'], # allowed response keys
     'fullScreen': True,       # run in full screen mode?
     'screenToShow': 0,        # display on primary screen (0) or secondary (1)?
     'fixCrossSize': 50,       # size of cross, in pixels
@@ -184,6 +187,7 @@ def AddToFlipTime(tIncrement=1.0):
 def RunTrial(frames,tIFIs,tISI):
     
     # ===TEXT=== #
+    endTime = np.Inf;
     for i in range(len(frames)):
         # update text
         mainText.setText(frames[i])
@@ -192,12 +196,22 @@ def RunTrial(frames,tIFIs,tISI):
         
         # wait until it's time
         while (globalClock.getTime()<tNextFlip[0]):
-            # check for escape characters
+            # check for escape keys
             thisKey = event.getKeys()
             if thisKey!=None and len(thisKey)>0 and thisKey[0] in ['q','escape']:
                 core.quit()
+            # check for response keys
+            elif thisKey!=None and len(thisKey)>0 and thisKey[0] in params['respKeys']:
+                logging.log(level=logging.EXP, msg='Response at speed = %.1f wpm'%(60.0/tIFIs[i]))
+                endTime = globalClock.getTime() + params['endDelay'];
+                print('endTime = %g'%endTime)
 #            core.wait(0.0001)
         
+        # if it's more than endDelay seconds after a response
+        if globalClock.getTime()>endTime:
+            win.flip(); # clear current word from the screen
+            break; # exit the loop
+            
         # now display
         win.flip()
         # add to flip time
@@ -210,7 +224,7 @@ def RunTrial(frames,tIFIs,tISI):
     
     # wait for ISI
     while (globalClock.getTime()<tNextFlip[0]):
-        # check for escape characters
+        # check for escape keys
         thisKey = event.getKeys()
         if thisKey!=None and len(thisKey)>0 and thisKey[0] in ['q','escape']:
             core.quit()
