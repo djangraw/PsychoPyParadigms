@@ -3,13 +3,16 @@
 """
 ImportExtinctionRecallTaskLog.py
 
-Helper functions for ImportExtinctionRecallTaskLog_batch.py.
+Import, tabulate, and plot Extinction Recall 3 log data.
 
 Created 1/3/19 by DJ.
 Updated 1/10/19 by DJ - adjusted to new VAS logging format, added GetVasTypes.
 Updated 1/11/19 by DJ - bug fixes, comments.
 Updated 2/25/19 by DJ - renamed PostDummyRun to PostRun3, stopped assuming sound check response was a float.
 Updated 4/12/19 by DJ - updated to work from command line and with new task version (adding Sound VAS).
+Updated 5/2/19 by DJ - added function to write BIDs-formatted events files,
+  added --makeBids flag to argparser, added run & tEnd columns to dfBlock.
+Updated 9/24/19 by DJ - accommodate ratingscales with no locked-in response, removed old/redundant mood VAS categorization.
 """
 
 # Import packages
@@ -25,22 +28,22 @@ import os             # for handling paths
 
 # Import full log (including keypresses)
 def ImportExtinctionRecallTaskLog(logFile):
-    
+
     # === Read in PsychoPy log
-    
+
     # Log start
     print('Reading file %s...'%logFile)
     t = time.time()
-    
+
     # Load file
     with open(logFile) as f:
         allLines = f.read().splitlines(True)
-    
+
     # Set up outputs
     dfKey = pd.DataFrame(columns=['t','key'])
     dfDisp = pd.DataFrame(columns=['t','stim','CS'])
     dfSync = pd.DataFrame(columns=['t','value'])
-    dfBlock = pd.DataFrame(columns=['tStart','tEnd','type'])
+    dfBlock = pd.DataFrame(columns=['tStart','tEnd','type','run'])
     dfVas = pd.DataFrame(columns=['imageFile','CSplusPercent','type','name','rating','timeToFirstPress','RT','run','group','block','trial','tImage','tStart','tEnd'])
     params = {}
     iKey = 0;
@@ -53,23 +56,23 @@ def ImportExtinctionRecallTaskLog(logFile):
     block = 0
     trial = 0
     isParams = False;
-    
+
     # Read each line
     for line in allLines:
         # split into parts
         data = line.split()
-    
+
         # Find params
         if 'START PARAMETERS' in line:
             isParams = True;
         elif 'END PARAMETERS' in line:
             isParams = False;
-    
+
         # Parse params
         elif isParams: # parse parameter
             key = data[2][:-1] # name of parameter
             if len(data)==4:
-                try: 
+                try:
                     params[key] = float(data[3]) # if it's a number, convert to a float
                 except ValueError:
                     params[key] = data[3] # otherwise, record the string
@@ -77,7 +80,7 @@ def ImportExtinctionRecallTaskLog(logFile):
                 params[key] = ast.literal_eval(''.join(data[3:])) # if the parameter is a list, make it a list variable
             else:
                 params[key] = ' '.join(data[3:])
-    
+
         # Parse data
         elif len(data)>2:
             if data[2]=='Keypress:': # time and key pressed
@@ -109,18 +112,14 @@ def ImportExtinctionRecallTaskLog(logFile):
                 trial = 0
                 iBlock +=1;
                 dfBlock.loc[iBlock,'tStart'] = float(data[0])
+                dfBlock.loc[iBlock,'run'] = run
+            elif data[2]=='===' and data[3]=='END' and data[4]=='BLOCK': # block end time
+                dfBlock.loc[iBlock,'tEnd'] = float(data[0])
             elif data[2]=='bottomMsg:':
                 if 'AFRAID' in line:
                     dfBlock.loc[iBlock,'type'] = 'afraid'
                 elif 'SCREAM' in line:
                     dfBlock.loc[iBlock,'type'] = 'scream'
-            elif data[2]=='Created' and data[3].startswith('Vas'):
-                if 'nervous' in line:
-                    dfVas.loc[iVas,'type']='nervous'
-                elif 'mood right now' in line:
-                    dfVas.loc[iVas,'type']='mood'
-                elif 'scale=str(...)' in line: # kluge - won't work if multiple types have multi-line text
-                    dfVas.loc[iVas,'type']='worried'
             elif data[2]=='RatingScale': # VAS time, rating, RT
                 if "rating=" in line:
                     dfVas.loc[iVas,'tStart'] = dfDisp.loc[iDisp-1,'t']
@@ -128,14 +127,27 @@ def ImportExtinctionRecallTaskLog(logFile):
                     dfVas.loc[iVas,'name'] = data[3][:-1]
                     value = float(data[-1].split("=")[-1])
                     dfVas.loc[iVas,'rating'] = value
-                    # if it's a mood vas, set type
-                    if pd.isnull(dfVas.loc[iVas,'type']):
-                        dfVas.loc[iVas,'type'] = 'mood'
-                    else:
+                    # if it's an image vas, set indices
+                    if dfVas.loc[iVas,'type'] in ['afraid','scream']:
                         dfVas.loc[iVas,'run'] = run
                         dfVas.loc[iVas,'group'] = group
                         dfVas.loc[iVas,'block'] = block
                         dfVas.loc[iVas,'trial'] = trial
+                    # if the response timed out, advance without RT/history
+                    if "timed out" in line:
+                        dfVas.loc[iVas,'RT'] = np.nan;
+                        # infer time to first keypress from                         
+                        iKeys = np.where((dfKey.t>dfVas.loc[iVas,'tStart']) & (dfKey.key!=str(params['triggerKey'])[0]))[0]
+                        if len(iKeys)>0:
+                            dfVas.loc[iVas,'timeToFirstPress'] = dfKey.loc[iKeys[0],'t'] - dfVas.loc[iVas,'tStart'];
+                        else:
+                            dfVas.loc[iVas,'timeToFirstPress'] = np.nan;
+                        if dfVas.loc[iVas,'type'] in ['afraid','scream']:
+                            print('WARNING: image rating scale at t=%g (run %d group %d block %d trial %d) timed out! RT will be set to NaN, timeToFirstPress inferred from key-display interval.'%(dfVas.loc[iVas,'tStart'],run,group,block,trial))
+                        else:
+                            print('WARNING: mood rating scale at t=%g timed out! RT will be set to NaN, timeToFirstPress inferred from key-display interval.'%(dfVas.loc[iVas,'tStart']))
+                        # increment VAS index
+                        iVas +=1;
                 elif "RT=" in line:
                     value = float(data[-1].split("=")[-1])
                     dfVas.loc[iVas,'RT'] = value
@@ -147,10 +159,10 @@ def ImportExtinctionRecallTaskLog(logFile):
                         timeToPress = dfVas.loc[iVas,'RT'] # if no press, default to RT
                     dfVas.loc[iVas,'timeToFirstPress'] = timeToPress
                     # increment VAS index
-                    iVas +=1;        
+                    iVas +=1;
     print('Done! Took %.1f seconds.'%(time.time()-t))
-    
-    
+
+
     print('Extracting VAS data...')
     t = time.time()
     # Parse out mood and sound VAS results
@@ -162,7 +174,7 @@ def ImportExtinctionRecallTaskLog(logFile):
     # reset indices
     dfSoundVas = dfSoundVas.reset_index(drop=True)
     dfMoodVas = dfMoodVas.reset_index(drop=True)
-    
+
     # Parse out image VAS results
     dfImageVas = dfVas.loc[pd.notnull(dfVas['imageFile']),:]
     dfImageVas = dfImageVas.drop('name',1)
@@ -170,12 +182,12 @@ def ImportExtinctionRecallTaskLog(logFile):
     # add Mood VAS types
     isTraining = 'Training' in logFile
     dfMoodVas = GetVasTypes(params,dfMoodVas,isTraining)
-    
+
     # add Sound VAS types (assuming only one question per sound!!!)
-    dfSoundVas['group']=np.arange(dfSoundVas.shape[0]) 
+    dfSoundVas['group']=np.arange(dfSoundVas.shape[0])
     dfSoundVas['groupName']=[x.split('-')[0] for x in dfSoundVas.name]
     dfSoundVas['type']='loud'
-    
+
     print('Done! Took %.1f seconds.'%(time.time()-t))
 
     # Return results
@@ -185,17 +197,17 @@ def ImportExtinctionRecallTaskLog(logFile):
 
 # Import VAS parts of log (excluding keypresses)
 def ImportExtinctionRecallTaskLog_VasOnly(logFile):
-    
+
     # === Read in PsychoPy log
-    
+
     # Log start
     print('Reading file %s...'%logFile)
     t = time.time()
-    
+
     # Load file
     with open(logFile) as f:
         allLines = f.read().splitlines(True)
-    
+
     # Set up outputs
     dfDisp = pd.DataFrame(columns=['t','stim','CS'])
     dfBlock = pd.DataFrame(columns=['tStart','tEnd','type'])
@@ -209,23 +221,23 @@ def ImportExtinctionRecallTaskLog_VasOnly(logFile):
     block = 0
     trial = 0
     isParams = False;
-    
+
     # Read each line
     for line in allLines:
         # split into parts
         data = line.split()
-    
+
         # Find params
         if 'START PARAMETERS' in line:
             isParams = True;
         elif 'END PARAMETERS' in line:
             isParams = False;
-    
+
         # Parse params
         elif isParams: # parse parameter
             key = data[2][:-1] # name of parameter
             if len(data)==4:
-                try: 
+                try:
                     params[key] = float(data[3]) # if it's a number, convert to a float
                 except ValueError:
                     params[key] = data[3] # otherwise, record the string
@@ -233,7 +245,7 @@ def ImportExtinctionRecallTaskLog_VasOnly(logFile):
                 params[key] = ast.literal_eval(''.join(data[3:])) # if the parameter is a list, make it a list variable
             else:
                 params[key] = ' '.join(data[3:])
-    
+
         # Parse data
         elif len(data)>2:
             if data[2]=='Display': # time and stim presented
@@ -257,6 +269,9 @@ def ImportExtinctionRecallTaskLog_VasOnly(logFile):
                 trial = 0
                 iBlock +=1;
                 dfBlock.loc[iBlock,'tStart'] = float(data[0])
+                dfBlock.loc[iBlock,'run'] = run
+            elif data[2]=='===' and data[3]=='END' and data[4]=='BLOCK': # block end time
+                dfBlock.loc[iBlock,'tEnd'] = float(data[0])
             elif data[2]=='bottomMsg:':
                 if 'AFRAID' in line:
                     dfBlock.loc[iBlock,'type'] = 'afraid'
@@ -269,14 +284,23 @@ def ImportExtinctionRecallTaskLog_VasOnly(logFile):
                     dfVas.loc[iVas,'name'] = data[3][:-1]
                     value = float(data[-1].split("=")[-1])
                     dfVas.loc[iVas,'rating'] = value
-                    # if it's a mood vas, set type
-                    if pd.isnull(dfVas.loc[iVas,'type']):
-                        dfVas.loc[iVas,'type'] = 'mood'
-                    else:
+                    # if it's an image vas, set indices
+                    if dfVas.loc[iVas,'type'] in ['afraid','scream']:
                         dfVas.loc[iVas,'run'] = run
                         dfVas.loc[iVas,'group'] = group
                         dfVas.loc[iVas,'block'] = block
                         dfVas.loc[iVas,'trial'] = trial
+                    # if the response timed out, advance without RT/history
+                    if "timed out" in line:
+                        dfVas.loc[iVas,'RT'] = np.nan;
+                        # NOTE: nan indicates unknown, not lack of keypress! 
+                        dfVas.loc[iVas,'timeToFirstPress'] = np.nan;
+                        if dfVas.loc[iVas,'type'] in ['afraid','scream']:
+                            print('WARNING: image rating scale at t=%g (run %d group %d block %d trial %d) timed out! RT and timeToFirstPress will be set to NaN.'%(dfVas.loc[iVas,'tStart'],run,group,block,trial))
+                        else:
+                            print('WARNING: mood rating scale at t=%g timed out! RT and timeToFirstPress will be set to NaN.'%(dfVas.loc[iVas,'tStart']))
+                        # increment VAS index
+                        iVas +=1;
                 elif "RT=" in line:
                     value = float(data[-1].split("=")[-1])
                     dfVas.loc[iVas,'RT'] = value
@@ -288,11 +312,11 @@ def ImportExtinctionRecallTaskLog_VasOnly(logFile):
                         timeToPress = dfVas.loc[iVas,'RT'] # if no press, default to RT
                     dfVas.loc[iVas,'timeToFirstPress'] = timeToPress
                     # increment VAS index
-                    iVas +=1;                 
+                    iVas +=1;
 
-    
+
     print('Done! Took %.1f seconds.'%(time.time()-t))
-    
+
     print('Extracting VAS data...')
     t = time.time()
     # Parse out mood and sound VAS results
@@ -304,7 +328,7 @@ def ImportExtinctionRecallTaskLog_VasOnly(logFile):
     # reset indices
     dfSoundVas = dfSoundVas.reset_index(drop=True)
     dfMoodVas = dfMoodVas.reset_index(drop=True)
-    
+
     # Parse out image VAS results
     dfImageVas = dfVas.loc[pd.notnull(dfVas['imageFile']),:]
     dfImageVas = dfImageVas.drop('name',1)
@@ -312,28 +336,28 @@ def ImportExtinctionRecallTaskLog_VasOnly(logFile):
     # add Mood VAS types
     isTraining = 'Training' in logFile
     dfMoodVas = GetVasTypes(params,dfMoodVas,isTraining)
-    
+
     # add Sound VAS types (assuming only one question per sound!!!)
-    dfSoundVas['group']=np.arange(dfSoundVas.shape[0]) 
+    dfSoundVas['group']=np.arange(dfSoundVas.shape[0])
     dfSoundVas['groupName']=[x.split('-')[0] for x in dfSoundVas.name]
     dfSoundVas['type']='loud'
-    
+
     print('Done! Took %.1f seconds.'%(time.time()-t))
 
     # Return results
     return params, dfMoodVas, dfSoundVas, dfImageVas
 
 
-# Add accurate group, groupName, and type columns to the dfMoodVas dataframe 
+# Add accurate group, groupName, and type columns to the dfMoodVas dataframe
 def GetVasTypes(params,dfMoodVas,isTraining=False):
-    
+
     # declare constants
     if isTraining:
         vasGroups = ['PreRun1']
     else:
         vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostRun3']
     magicWords = ['anxious','tired','worried are','mood','doing','feared']
-    
+
     # check each group file for magic words
     for i,groupName in enumerate(vasGroups):
         try:
@@ -345,7 +369,7 @@ def GetVasTypes(params,dfMoodVas,isTraining=False):
                 for ln in fi:
                     if ln.startswith("?"):
                         questions.append(ln[1:])
-                
+
             for j,question in enumerate(questions):
                 isThis = dfMoodVas.name=='%s-%d'%(groupName,j)
                 dfMoodVas.loc[isThis,'group'] = i
@@ -355,7 +379,7 @@ def GetVasTypes(params,dfMoodVas,isTraining=False):
                         dfMoodVas.loc[isThis,'type'] = word.split()[0]
         except:
             print('group %s not found.'%groupName)
-            
+
     return dfMoodVas # return modified dataframe
 
 # Save figures of the image and mood VAS responses and RTs.
@@ -365,7 +389,7 @@ def SaveVasFigures(params,dfMoodVas,dfSoundVas,dfImageVas,outPrefix='ER3_'):
     outBase = os.path.basename(outPrefix) # filename without the folder
     print('Plotting VAS data...')
     t = time.time()
-    
+
     # === MOOD VAS === #
     # Set up figure
     moodFig = plt.figure(figsize=(8, 4), dpi=120, facecolor='w', edgecolor='k')
@@ -375,10 +399,10 @@ def SaveVasFigures(params,dfMoodVas,dfSoundVas,dfImageVas,outPrefix='ER3_'):
     if 'Training' in outPrefix:
         vasGroups=['PreRun1']
     else:
-        vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostRun3'] 
+        vasGroups = ['PreSoundCheck','PostRun1','PostRun2','PostRun3']
     vasTypes = ['anxious','tired','worried','mood','doing','feared']
 #    vasTypes = dfMoodVas.type.unique()
-    
+
     for vasType in vasTypes:
         isInType = dfMoodVas.type==vasType
         plt.plot(dfMoodVas.loc[isInType,'group'],dfMoodVas.loc[isInType,'rating'],'.-',label=vasType)
@@ -389,7 +413,7 @@ def SaveVasFigures(params,dfMoodVas,dfSoundVas,dfImageVas,outPrefix='ER3_'):
     plt.xlabel('group')
     plt.ylabel('rating (0-100)')
     plt.title('%s%d-%d\n Mood VAS Ratings'%(outBase,params['subject'],params['session']))
-    
+
     # Plot Reaction Times
     plt.subplot(122)
     for vasType in vasTypes:
@@ -401,26 +425,26 @@ def SaveVasFigures(params,dfMoodVas,dfSoundVas,dfImageVas,outPrefix='ER3_'):
     plt.xlabel('group')
     plt.ylabel('reaction time (s))')
     plt.title('%s%d-%d\n Mood VAS RTs'%(outBase,params['subject'],params['session']))
-    
+
     # Save figure
     outFile = '%s%d-%d_MoodVasFigure.png'%(outPrefix,params['subject'],params['session'])
     print("Saving Mood VAS figure as %s..."%outFile)
     moodFig.savefig(outFile)
-    
-    
-    
+
+
+
     # === SOUND CHECK VAS === #
     # No sound checks in training task
     if not 'Training' in outPrefix:
         # declare constants
-        vasGroups = ['SoundCheck1','SoundCheck2','SoundCheck3'] 
+        vasGroups = ['SoundCheck1','SoundCheck2','SoundCheck3']
         vasTypes = ['loud']
 
         # Set up figure
         soundFig = plt.figure(figsize=(8, 4), dpi=120, facecolor='w', edgecolor='k')
         # Plot Ratings
         plt.subplot(121)
-        
+
         for vasType in vasTypes:
             isInType = dfSoundVas.type==vasType
             plt.plot(dfSoundVas.loc[isInType,'group'],dfSoundVas.loc[isInType,'rating'],'.-',label=vasType)
@@ -431,7 +455,7 @@ def SaveVasFigures(params,dfMoodVas,dfSoundVas,dfImageVas,outPrefix='ER3_'):
         plt.xlabel('group')
         plt.ylabel('rating (0-100)')
         plt.title('%s subject %d session %d\n Sound VAS Ratings'%(outBase,params['subject'],params['session']))
-        
+
         # Plot Reaction Times
         plt.subplot(122)
         for vasType in vasTypes:
@@ -443,16 +467,16 @@ def SaveVasFigures(params,dfMoodVas,dfSoundVas,dfImageVas,outPrefix='ER3_'):
         plt.xlabel('group')
         plt.ylabel('reaction time (s))')
         plt.title('%s subject %d session %d\n Sound VAS RTs'%(outBase,params['subject'],params['session']))
-    
+
         # Save figure
         outFile = '%s%d-%d_SoundVasFigure.png'%(outPrefix,params['subject'],params['session'])
         print("Saving Sound VAS figure as %s..."%outFile)
         soundFig.savefig(outFile)
-    
+
     # === IMAGE VAS === #
     # Plot image VAS results
     imgFig = plt.figure(figsize=(8, 4), dpi=120, facecolor='w', edgecolor='k')
-    
+
     # Plot Ratings
     plt.subplot(121)
     vasTypes = dfImageVas.type.unique()
@@ -465,7 +489,7 @@ def SaveVasFigures(params,dfMoodVas,dfSoundVas,dfImageVas,outPrefix='ER3_'):
     plt.xlabel('CS plus level (%)')
     plt.ylabel('rating (0-100)')
     plt.title('%s%d-%d\n Image VAS Ratings'%(outBase,params['subject'],params['session']))
-    
+
     # Plot Reaction Times
     plt.subplot(122)
     for vasType in vasTypes:
@@ -481,14 +505,14 @@ def SaveVasFigures(params,dfMoodVas,dfSoundVas,dfImageVas,outPrefix='ER3_'):
     outFile = '%s%d-%d_ImageVasFigure.png'%(outPrefix,params['subject'],params['session'])
     print("Saving Image VAS figure as %s..."%outFile)
     imgFig.savefig(outFile)
-    
+
     print('Done! Took %.1f seconds.'%(time.time()-t))
 
 
 # Convert mood VAS to a single line for logging to multi-subject spreadsheet
 def GetSingleVasLine(params,dfVas,isTraining=False,isSoundVas=False):
 
-    
+
     # === Convert table to single line
     # Declare names of VAS groups/types-within-groups (to be used in legends/tables)
     if isTraining:
@@ -502,7 +526,7 @@ def GetSingleVasLine(params,dfVas,isTraining=False,isSoundVas=False):
         vasTypes = ['loud']
     else:
         vasTypes = ['anxious','tired','worried','mood','doing','feared'] # shorthand for VAS0, VAS1, VAS2, etc.
-    
+
     # Convert
     cols = ['subject','session','date']
     for vasGroup in vasGroups:
@@ -515,10 +539,10 @@ def GetSingleVasLine(params,dfVas,isTraining=False,isSoundVas=False):
     dfVas_singleRow = pd.DataFrame(columns=cols)
     dfVas_singleRow.subject = dfVas_singleRow.subject.astype(int) # convert SDAN to integer
     # dfVas_singleRow = dfVas_singleRow.set_index('subject') # set SDAN as index
-    dfVas_singleRow.loc[0,'subject'] = int(params['subject']) 
-    dfVas_singleRow.loc[0,'session'] = int(params['session']) 
+    dfVas_singleRow.loc[0,'subject'] = int(params['subject'])
+    dfVas_singleRow.loc[0,'session'] = int(params['session'])
     dfVas_singleRow.loc[0,'date'] = params['date']
-    
+
     # Fill out single row
     for vasGroup in vasGroups:
         for vasType in vasTypes:
@@ -526,22 +550,109 @@ def GetSingleVasLine(params,dfVas,isTraining=False,isSoundVas=False):
             if np.any(isThis):
                 dfVas_singleRow.loc[0,'%s_%s_rating'%(vasGroup,vasType)] = dfVas.loc[isThis,'rating'].values[0]
                 dfVas_singleRow.loc[0,'%s_%s_RT'%(vasGroup,vasType)] = dfVas.loc[isThis,'RT'].values[0]
-    
+
     return dfVas_singleRow
 
 
+# Write events to BIDS-formatted events files
+def WriteBidsEventsFiles(dfDisp,dfKey,dfImageVas,dfBlock,subject,outFolder='./',isTraining=False):
+
+    # make sure times are floats, not strings
+    dfDisp['t'] = dfDisp['t'].astype(float)
+    dfKey['t'] = dfKey['t'].astype(float)
+
+    # Declare column names (based on BIDS specs)
+    colNames=['onset','duration','identifier','trial_type','stim_file','response'];
+
+    # Get stim durations
+    tDisp = dfDisp.t.values;
+    dfDisp['duration'] = 0;
+    dfDisp.duration.iloc[:-1] = tDisp[1:] - tDisp[:-1]
+
+    # find times of scan starts
+    tWaitForStarts = dfDisp.loc[dfDisp.stim=='WaitingForScanner','t'].values
+    print('Writing BIDS event files for %d runs...'%len(tWaitForStarts))
+
+    # create output directory
+    fileOutDir = os.path.join(outFolder,'sub-%05d'%subject,'func')
+    if not os.path.exists(fileOutDir):
+        os.makedirs(fileOutDir)
+
+    for iRun,tWait in enumerate(tWaitForStarts):
+        # get scan start and end time based on display
+        tStartScan = dfKey.loc[(dfKey.key=='5') & (dfKey.t>tWait),'t'].values[0]
+        tEndScan = dfBlock.loc[(dfBlock.run)==iRun+1,'tEnd'].values[-1]
+
+        # get events & info specifically in this scan
+        isInScan = (dfKey.t>tStartScan) & (dfKey.t<tEndScan)
+        dfKey_scan = dfKey[isInScan]
+        isInScan = (dfDisp.t>tStartScan) & (dfDisp.t<tEndScan)
+        dfDisp_scan = dfDisp[isInScan]
+        isInScan = (dfImageVas.tStart>tStartScan) & (dfImageVas.tStart<tEndScan)
+        dfImageVas_scan = dfImageVas[isInScan]
+        CSnum = dfImageVas_scan.CSplusPercent.values
+        blockType = dfImageVas_scan.type.values
+
+        # make dataframe for keypress events
+        dfEvents1 = pd.DataFrame(columns=colNames);
+        dfEvents1['onset'] = dfKey_scan.t-tStartScan
+        dfEvents1['identifier'] = ['key-down_%s'%x for x in dfKey_scan.key]
+        dfEvents1['duration'] = 0;
+        #dfEvents.loc[isImage,'trial_type'] = ['%s_CS%s'%(blockType[i],CSnum[i]) for i in range(len(CSnum))]
+
+        # make dataframe for display events
+        dfEvents2 = pd.DataFrame(columns=colNames);
+        dfEvents2['onset'] = dfDisp_scan.t-tStartScan
+        dfEvents2['duration'] = dfDisp_scan['duration']
+        dfEvents2['identifier'] = ['disp_%s'%x for x in dfDisp_scan.stim]
+        isImage = pd.notna(dfDisp_scan.CS)
+        isImageRating = dfDisp_scan.stim=='ImageRating0';
+        dfEvents2.loc[isImage,'trial_type'] = ['%s_CS-%s'%(blockType[i],CSnum[i]) for i in range(len(CSnum))]
+        dfEvents2.loc[isImageRating,'trial_type'] = ['%s_CS-%s'%(blockType[i],CSnum[i]) for i in range(len(CSnum))]
+        dfEvents2.loc[isImage,'stim_file'] = dfDisp_scan.loc[isImage,'stim']
+        dfEvents2.loc[isImageRating,'stim_file'] = dfDisp_scan.loc[isImage,'stim'].values
+        dfEvents2.loc[isImage,'identifier'] = 'disp_Face'
+        dfEvents2.loc[isImageRating,'identifier'] = 'disp_ImageRating'
+        dfEvents2.loc[isImageRating,'response'] = dfImageVas_scan.rating.values # rating final value
+        # dfEvents2.loc[isImageRating,'response_time'] = dfImageVas_scan.RT.values # rating final value
+
+        # combine dataframes
+        dfEvents = pd.concat((dfEvents1,dfEvents2))
+        # convert numbers to floats
+        dfEvents['onset'] = dfEvents['onset'].astype(float)
+        dfEvents['duration'] = dfEvents['duration'].astype(float)
+        dfEvents['response'] = dfEvents['response'].astype(float)
+        # sort events chronologically
+        dfEvents = dfEvents.sort_values('onset')
+        dfEvents = dfEvents.reset_index(drop=True)
+
+        # write to file
+        if isTraining:
+            fileOut = os.path.join(fileOutDir,'sub-%05d_task-ER3Training_run-%d_events.tsv'%(subject,iRun+1))
+        else:
+            fileOut = os.path.join(fileOutDir,'sub-%05d_task-ER3_run-%d_events.tsv'%(subject,iRun+1))
+        print('Writing BIDS-formatted events to %s...'%fileOut)
+        dfEvents.to_csv(fileOut,index=False,sep='\t',float_format='%.3f',na_rep='n/a')
+        print('Done!')
+
 # Do everything: import the log, produce the figures, and produce the tables.
-def ProcessERLog(logFilename,outFolder):
-    
+def ProcessERLog(logFilename,outFolder,makeBids=False):
+
+    # Get experiment type
+    isTraining = ('Training' in logFilename) # is it a training run?
+
     # import data
-    readParams,dfMoodVas,dfSoundVas,dfImageVas = ImportExtinctionRecallTaskLog_VasOnly(logFilename)
+    if makeBids:
+        readParams,dfMoodVas,dfSoundVas,dfImageVas,dfKey,dfDisp,dfSync,dfBlock = ImportExtinctionRecallTaskLog(logFilename)
+        WriteBidsEventsFiles(dfDisp,dfKey,dfImageVas,dfBlock,readParams['subject'],outFolder,isTraining)
+    else:
+        readParams,dfMoodVas,dfSoundVas,dfImageVas = ImportExtinctionRecallTaskLog_VasOnly(logFilename)
 
     # create output folder if it doesn't exist
     subjOutFolder = os.path.join(outFolder,'%d'%(readParams['subject']))
     if not os.path.exists(subjOutFolder):
         os.makedirs(subjOutFolder)
-    isTraining = ('Training' in logFilename) # is it a training run?
-    
+
     # declare cross-subject table filenames
     if isTraining: # if it's a training run
         outMoodTable = os.path.join(outFolder,'ER3Training-MoodVasTable.xlsx')
@@ -550,10 +661,10 @@ def ProcessERLog(logFilename,outFolder):
         outMoodTable = os.path.join(outFolder,'ER3-MoodVasTable.xlsx')
         outSoundTable = os.path.join(outFolder,'ER3-SoundVasTable.xlsx')
         subjOutPrefix = os.path.join(subjOutFolder,'ER3_')
-    
-    # make figures    
+
+    # make figures
     SaveVasFigures(readParams,dfMoodVas,dfSoundVas,dfImageVas,subjOutPrefix)
-    
+
     # convert mood VAS to single line
     dfMoodVas_singleRow = GetSingleVasLine(readParams,dfMoodVas,isTraining)
     # Append output table to file
@@ -565,7 +676,7 @@ def ProcessERLog(logFilename,outFolder):
         dfMoodVas_all.to_excel(outMoodTable,index=False)
     else:
         dfMoodVas_singleRow.to_excel(outMoodTable,index=False)
-        
+
     if not isTraining: # if it's not a training run
         # convert sound VAS to single line
         dfSoundVas_singleRow = GetSingleVasLine(readParams,dfSoundVas,isTraining,isSoundVas=True)
@@ -578,8 +689,8 @@ def ProcessERLog(logFilename,outFolder):
             dfSoundVas_all.to_excel(outSoundTable,index=False)
         else:
             dfSoundVas_singleRow.to_excel(outSoundTable,index=False)
-        
-        
+
+
     # Save Image VAS table (one per run)
     runs = dfImageVas.run.unique()
     for run in runs:
@@ -587,25 +698,26 @@ def ProcessERLog(logFilename,outFolder):
         outImageTable = '%s%d-%d_run%d-ImageVasTable.xlsx'%(subjOutPrefix,readParams['subject'],readParams['session'],run)
         print("Saving Image VAS table %s..."%os.path.basename(outImageTable))
         dfImageVas_thisrun.to_excel(outImageTable,index=False)
-    
+
     print('Done!')
 
 
 
 
-# %% === Set up argument parser === 
-    
+# %% === Set up argument parser ===
+
 parser = argparse.ArgumentParser(description='Process ExtinctionRecall3 log file, producing figures and tables with relevant info.')
 
 parser.add_argument('--subjects', nargs='*', default='', help='SDAN numbers of subjects to process')
 #parser.add_argument('--logFiles', nargs='*', default='', help='log filename')
 parser.add_argument('--isMac', action='store_true', help='use mac paths instead of PC')
+parser.add_argument('--makeBids', action='store_true', help='Write BIDS events files (slower)')
 
 
 # ==== Declare main command-line function ==== #
 
 if __name__ == '__main__':
-    
+
     # parse inputs
     args = parser.parse_args();
     # Get paths to mood vas and sound tables
@@ -613,17 +725,13 @@ if __name__ == '__main__':
         baseDir = '/Volumes/sdan1/Data/conditioning/ExtinctionRecall3/Data'
     else:
         baseDir = 'Z:/Data/conditioning/ExtinctionRecall3/Data'
-        
-    outFolder = os.path.join(baseDir,'Processed')    
-    
-    for subj in args.subjects:        
+
+    outFolder = os.path.join(baseDir,'Processed')
+
+    for subj in args.subjects:
         logFiles = glob(os.path.join(baseDir,'Raw','ER3*_%s-*.log'%subj))
         print('Found %d files for subject %s.'%(len(logFiles),subj))
-        
-        for logFile in logFiles:            
-            print('Found file %s...'%logFile)
-            ProcessERLog(logFile,outFolder)
 
-        
-    
-        
+        for logFile in logFiles:
+            print('Found file %s...'%logFile)
+            ProcessERLog(logFile,outFolder,args.makeBids)
