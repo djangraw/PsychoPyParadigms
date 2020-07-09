@@ -2,6 +2,7 @@
 """Display images from a specified folder and present them to the subject."""
 # GoNoGoTask_d1.py
 # Created 10/05/17 by DJ based on SampleExperiment_d1.py
+# Updated 7/9/20 by DJ - updated param file extensions (pickle->psydat)
 
 from psychopy import core, gui, data, event, sound, logging 
 # from psychopy import visual # visual causes a bug in the guis, so it's declared after all GUIs run.
@@ -16,7 +17,7 @@ import random, math # for randomization of trials, math
 # ====================== #
 # Save the parameters declared below?
 saveParams = True;
-newParamsFilename = 'GoNoGoParams.pickle'
+newParamsFilename = 'GoNoGoParams.psydat'
 
 # Declare primary task parameters.
 params = {
@@ -50,7 +51,7 @@ params = {
 # save parameters
 if saveParams:
     dlgResult = gui.fileSaveDlg(prompt='Save Params...',initFilePath = os.getcwd() + '/Params', initFileName = newParamsFilename,
-        allowed="PICKLE files (.pickle)|.pickle|All files (.*)|")
+        allowed="PICKLE files (.psydat)|.psydat|All files (.*)|")
     newParamsFilename = dlgResult
     if newParamsFilename is None: # keep going, but don't save
         saveParams = False
@@ -62,7 +63,7 @@ if saveParams:
 # ========================== #
 scriptName = os.path.basename(__file__)
 try: # try to get a previous parameters file
-    expInfo = fromFile('%s-lastExpInfo.pickle'%scriptName)
+    expInfo = fromFile('%s-lastExpInfo.psydat'%scriptName)
     expInfo['session'] +=1 # automatically increment session number
     expInfo['paramsFile'] = [expInfo['paramsFile'],'Load...']
 except: # if not there then use a default set
@@ -83,7 +84,7 @@ if not dlg.OK:
 # find parameter file
 if expInfo['paramsFile'] == 'Load...':
     dlgResult = gui.fileOpenDlg(prompt='Select parameters file',tryFilePath=os.getcwd(),
-        allowed="PICKLE files (.pickle)|.pickle|All files (.*)|")
+        allowed="PICKLE files (.psydat)|.psydat|All files (.*)|")
     expInfo['paramsFile'] = dlgResult[0]
 # load parameter file
 if expInfo['paramsFile'] not in ['DEFAULT', None]: # otherwise, just use defaults.
@@ -101,7 +102,7 @@ for key in sorted(params.keys()):
 print('}')
     
 # save experimental info
-toFile('%s-lastExpInfo.pickle'%scriptName, expInfo)#save params to file for next time
+toFile('%s-lastExpInfo.psydat'%scriptName, expInfo)#save params to file for next time
 
 #make a log file to save parameter/event  data
 dateStr = ts.strftime("%b_%d_%H%M", ts.localtime()) # add the current time
