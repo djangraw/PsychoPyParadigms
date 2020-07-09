@@ -3,6 +3,7 @@
 # SampleExperiment_d1.py
 # Created 11/09/15 by DJ based on DistractionTask_practice_d3.py
 # Updated 11/10/15 by DJ - cleaned up comments
+# Updated 7/9/20 by DJ - updated param file extensions (pickle->psydat), switched to height units, primary screen
 
 from psychopy import core, gui, data, event, sound, logging 
 # from psychopy import visual # visual causes a bug in the guis, so it's declared after all GUIs run.
@@ -17,7 +18,7 @@ import random # for randomization of trials
 # ====================== #
 # Save the parameters declared below?
 saveParams = True;
-newParamsFilename = 'SampleExperimentParams.pickle'
+newParamsFilename = 'SampleExperimentParams.psydat'
 
 # Declare primary task parameters.
 params = {
@@ -37,8 +38,8 @@ params = {
     'promptFile': 'SamplePrompts.txt', # Name of text file containing prompts 
 # declare display parameters
     'fullScreen': True,       # run in full screen mode?
-    'screenToShow': 1,        # display on primary screen (0) or secondary (1)?
-    'fixCrossSize': 10,       # size of cross, in pixels
+    'screenToShow': 0,        # display on primary screen (0) or secondary (1)?
+    'fixCrossSize': 0.1,       # size of cross, in height units
     'fixCrossPos': [0,0],     # (x,y) pos of fixation cross displayed before each stimulus (for gaze drift correction)
     'screenColor':(128,128,128) # in rgb255 space: (r,g,b) all between 0 and 255
 }
@@ -46,7 +47,7 @@ params = {
 # save parameters
 if saveParams:
     dlgResult = gui.fileSaveDlg(prompt='Save Params...',initFilePath = os.getcwd() + '/Params', initFileName = newParamsFilename,
-        allowed="PICKLE files (.pickle)|.pickle|All files (.*)|")
+        allowed="PICKLE files (.psydat)|.psydat|All files (.*)|")
     newParamsFilename = dlgResult
     if newParamsFilename is None: # keep going, but don't save
         saveParams = False
@@ -57,9 +58,9 @@ if saveParams:
 # ===== SET UP LOGGING ===== #
 # ========================== #
 scriptName = os.path.basename(__file__)
-scriptName = os.path.splitext(scriptName)[0] % remove extension
+scriptName = os.path.splitext(scriptName)[0] # remove extension
 try: # try to get a previous parameters file
-    expInfo = fromFile('%s-lastExpInfo.pickle'%scriptName)
+    expInfo = fromFile('%s-lastExpInfo.psydat'%scriptName)
     expInfo['session'] +=1 # automatically increment session number
     expInfo['paramsFile'] = [expInfo['paramsFile'],'Load...']
 except: # if not there then use a default set
@@ -80,7 +81,7 @@ if not dlg.OK:
 # find parameter file
 if expInfo['paramsFile'] == 'Load...':
     dlgResult = gui.fileOpenDlg(prompt='Select parameters file',tryFilePath=os.getcwd(),
-        allowed="PICKLE files (.pickle)|.pickle|All files (.*)|")
+        allowed="PICKLE files (.psydat)|.psydat|All files (.*)|")
     expInfo['paramsFile'] = dlgResult[0]
 # load parameter file
 if expInfo['paramsFile'] not in ['DEFAULT', None]: # otherwise, just use defaults.
@@ -98,7 +99,7 @@ for key in sorted(params.keys()):
 print '}'
     
 # save experimental info
-toFile('%s-lastExpInfo.pickle'%scriptName, expInfo)#save params to file for next time
+toFile('%s-lastExpInfo.psydat'%scriptName, expInfo)#save params to file for next time
 
 #make a log file to save parameter/event  data
 dateStr = ts.strftime("%b_%d_%H%M", ts.localtime()) # add the current time
@@ -144,11 +145,11 @@ tNextFlip = [0.0] # put in a list to make it mutable (weird quirk of python vari
 #create clocks and window
 globalClock = core.Clock()#to keep track of time
 trialClock = core.Clock()#to keep track of time
-win = visual.Window(screenRes, fullscr=params['fullScreen'], allowGUI=False, monitor='testMonitor', screen=params['screenToShow'], units='deg', name='win',color=params['screenColor'],colorSpace='rgb255')
+win = visual.Window(screenRes, fullscr=params['fullScreen'], allowGUI=False, monitor='testMonitor', screen=params['screenToShow'], units='height', name='win',color=params['screenColor'],colorSpace='rgb255')
 # create fixation cross
 fCS = params['fixCrossSize'] # size (for brevity)
 fCP = params['fixCrossPos'] # position (for brevity)
-fixation = visual.ShapeStim(win,lineColor='#000000',lineWidth=3.0,vertices=((fCP[0]-fCS/2,fCP[1]),(fCP[0]+fCS/2,fCP[1]),(fCP[0],fCP[1]),(fCP[0],fCP[1]+fCS/2),(fCP[0],fCP[1]-fCS/2)),units='pix',closeShape=False,name='fixCross');
+fixation = visual.ShapeStim(win,lineColor='#000000',lineWidth=3.0,vertices=((fCP[0]-fCS/2,fCP[1]),(fCP[0]+fCS/2,fCP[1]),(fCP[0],fCP[1]),(fCP[0],fCP[1]+fCS/2),(fCP[0],fCP[1]-fCS/2)),units='height',closeShape=False,name='fixCross');
 # create text stimuli
 message1 = visual.TextStim(win, pos=[0,+.5], wrapWidth=1.5, color='#000000', alignHoriz='center', name='topMsg', text="aaa",units='norm')
 message2 = visual.TextStim(win, pos=[0,-.5], wrapWidth=1.5, color='#000000', alignHoriz='center', name='bottomMsg', text="bbb",units='norm')
@@ -164,7 +165,7 @@ random.shuffle(allImages)
 
 # initialize main image stimulus
 imageName = allImages[0] # initialize with first image
-stimImage = visual.ImageStim(win, pos=[0,0], name='ImageStimulus',image=imageName, units='pix')
+stimImage = visual.ImageStim(win, pos=[0,0], name='ImageStimulus',image=imageName, units='height')
 
 # read questions and answers from text files
 [topPrompts,bottomPrompts] = BasicPromptTools.ParsePromptFile(params['promptDir']+params['promptFile'])

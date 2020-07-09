@@ -95,10 +95,10 @@ if expInfo['paramsFile'] not in ['DEFAULT', None]: # otherwise, just use default
 params['skipPrompts'] = expInfo['skipPrompts']
 
 # print params to Output
-print 'params = {'
+print('params = {')
 for key in sorted(params.keys()):
-    print "   '%s': %s"%(key,params[key]) # print each value as-is (no quotes)
-print '}'
+    print("   '%s': %s"%(key,params[key])) # print each value as-is (no quotes)
+print('}')
     
 # save experimental info
 toFile('%s-lastExpInfo.pickle'%scriptName, expInfo)#save params to file for next time
@@ -133,7 +133,7 @@ if params['fullScreen']:
 else:
     screenRes = [800,600]
 
-print "screenRes = [%d,%d]"%screenRes
+print("screenRes = [%d,%d]"%screenRes)
 
 
 # ========================== #
