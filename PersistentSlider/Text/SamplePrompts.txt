@@ -1,0 +1,6 @@
+### Page 1 ###
++You will see images of faces. Indicate whether the face is male using the button box.
+-Press any button to continue.
+### Page 2 ###
++If you have any questions, please ask the experimenter now.
+-WHEN YOU ARE READY TO BEGIN, press any button.
